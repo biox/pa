@@ -1,0 +1,234 @@
+#!/bin/sh
+#
+# pa - simple age-based password manager
+
+pw_add() {
+    name=$1
+
+    if yn "Generate a password?"; then
+        # Generate a password by reading '/dev/urandom' with the
+        # 'tr' command to translate the random bytes into a
+        # configurable character set.
+        #
+        # The 'dd' command is then used to read only the desired
+        # password length.
+        #
+        # Regarding usage of '/dev/urandom' instead of '/dev/random'.
+        # See: https://www.2uo.de/myths-about-urandom
+        pass=$(LC_ALL=C tr -dc "${PA_PATTERN:-_A-Z-a-z-0-9}" < /dev/urandom |
+            dd ibs=1 obs=1 count="${PA_LENGTH:-50}" 2>/dev/null)
+
+    else
+        # 'sread()' is a simple wrapper function around 'read'
+        # to prevent user input from being printed to the terminal.
+        sread pass  "Enter password"
+        sread pass2 "Enter password (again)"
+
+        # Disable this check as we dynamically populate the two
+        # passwords using the 'sread()' function.
+        # shellcheck disable=2154
+        [ "$pass" = "$pass2" ] || die "Passwords do not match"
+    fi
+
+    [ "$pass" ] || die "Failed to generate a password"
+
+    # Mimic the use of an array for storing arguments by... using
+    # the function's argument list. This is very apt isn't it?
+    set -- -c
+
+    # Use 'age' to store the password in an encrypted file.
+    # A heredoc is used here instead of a 'printf' to avoid
+    # leaking the password through the '/proc' filesystem.
+    #
+    # Heredocs are sometimes implemented via temporary files,
+    # however this is typically done using 'mkstemp()' which
+    # is more secure than a leak in '/proc'.
+    age -r "$pubkey" -o "$name.age" <<-EOF &&
+		$pass
+	EOF
+    printf '%s\n' "Saved '$name' to the store."
+}
+
+pw_edit() {
+    name=$1
+
+    [ -f "$name.age" ] || die "Failed to access $name"
+
+    # we use /dev/shm because it's an in-memory
+    # space that we can use to store private data,
+    # and securely wipe it without worrying about
+    # residual badness
+    [ -d /dev/shm ] || die "Failed to access /dev/shm"
+
+    mkdir -p /dev/shm/pa
+    trap 'rm -rf /dev/shm/pa' EXIT
+    tmpfile="/dev/shm/pa/$name.txt"
+
+    age -i ~/.age/key.txt --decrypt "$1.age" 2>/dev/null > "$tmpfile" ||
+        die "Could not decrypt $1.age"
+
+    "${EDITOR:-vi}" "$tmpfile"
+
+    [ -f "$tmpfile" ] || die "New password not saved"
+
+    rm "$name.age"
+    age -r "$pubkey" -o "$name.age" "$tmpfile"
+}
+
+pw_del() {
+    yn "Delete pass file '$1'?" && {
+        rm -f "$1.age"
+
+        # Remove empty parent directories of a password
+        # entry. It's fine if this fails as it means that
+        # another entry also lives in the same directory.
+        rmdir -p "${1%/*}" 2>/dev/null || :
+    }
+}
+
+pw_show() {
+    age -i ~/.age/key.txt --decrypt "$1.age" 2>/dev/null ||
+        die "Could not decrypt $1.age"
+}
+
+pw_list() {
+    find . -type f -name \*.age | sed 's/..//;s/\.age$//'
+}
+
+pw_gen() {
+    if yn "$HOME/.age/key.txt not detected, generate a new one?"; then
+        mkdir -p ~/.age
+        age-keygen -o ~/.age/key.txt
+    fi
+}
+
+yn() {
+    printf '%s [y/n]: ' "$1"
+
+    # Enable raw input to allow for a single byte to be read from
+    # stdin without needing to wait for the user to press Return.
+    stty -icanon
+
+    # Read a single byte from stdin using 'dd'. POSIX 'read' has
+    # no support for single/'N' byte based input from the user.
+    answer=$(dd ibs=1 count=1 2>/dev/null)
+
+    # Disable raw input, leaving the terminal how we *should*
+    # have found it.
+    stty icanon
+
+    printf '\n'
+
+    # Handle the answer here directly, enabling this function's
+    # return status to be used in place of checking for '[yY]'
+    # throughout this program.
+    glob "$answer" '[yY]'
+}
+
+sread() {
+    printf '%s: ' "$2"
+
+    # Disable terminal printing while the user inputs their
+    # password. POSIX 'read' has no '-s' flag which would
+    # effectively do the same thing.
+    stty -echo
+    read -r "$1"
+    stty echo
+
+    printf '\n'
+}
+
+glob() {
+    # This is a simple wrapper around a case statement to allow
+    # for simple string comparisons against globs.
+    #
+    # Example: if glob "Hello World" '* World'; then
+    #
+    # Disable this warning as it is the intended behavior.
+    # shellcheck disable=2254
+    case $1 in $2) return 0; esac; return 1
+}
+
+die() {
+    printf 'error: %s.\n' "$1" >&2
+    exit 1
+}
+
+usage() { printf %s "\
+pa 0.1.0 - age-based password manager
+=> [a]dd  [name] - Create a new password, randomly generated
+=> [d]el  [name] - Delete a password entry.
+=> [e]dit [name] - Edit a password entry with $EDITOR.
+=> [l]ist        - List all entries.
+=> [r]otate      - Generate a new age key, re-encrypt all passwords.
+=> [s]how [name] - Show password for an entry.
+Password length:   export PA_LENGTH=50
+Password pattern:  export PA_PATTERN=_A-Z-a-z-0-9
+Store location:    export PA_DIR=~/.local/share/pa
+"
+exit 0
+}
+
+main() {
+    : "${PA_DIR:=${XDG_DATA_HOME:=$HOME/.local/share}/pa}"
+
+    command -v age >/dev/null 2>&1 ||
+        die "age not found, install per https://github.com/FiloSottile/age"
+
+    command -v age-keygen >/dev/null 2>&1 ||
+        die "age-keygen not found, install per https://github.com/FiloSottile/age"
+
+    mkdir -p "$PA_DIR" ||
+        die "Couldn't create password directory"
+
+    cd "$PA_DIR" ||
+        die "Can't access password directory"
+
+    glob "$1" '[acdes]*' && [ -z "$2" ] &&
+        die "Missing [name] argument"
+
+    glob "$1" '[cds]*' && [ ! -f "$2.age" ] &&
+        die "Pass file '$2' doesn't exist"
+
+    glob "$1" 'a*' && [ -f "$2.age" ] &&
+        die "Pass file '$2' already exists"
+
+    glob "$2" '*/*' && glob "$2" '*../*' &&
+        die "Category went out of bounds"
+
+    glob "$2" '/*' &&
+        die "Category can't start with '/'"
+
+    glob "$2" '*/*' && { mkdir -p "${2%/*}" ||
+        die "Couldn't create category '${2%/*}'"; }
+
+    # Restrict permissions of any new files to
+    # only the current user.
+    umask 077
+
+    [ -f ~/.age/key.txt ] || pw_gen
+    pubkey=$(sed -n 's/.*\(age\)/\1/p' ~/.age/key.txt)
+
+    # Ensure that we leave the terminal in a usable
+    # state on exit or Ctrl+C.
+    [ -t 1 ] && trap 'stty echo icanon' INT EXIT
+
+    case $1 in
+        a*) pw_add  "$2" ;;
+        d*) pw_del  "$2" ;;
+        e*) pw_edit "$2" ;;
+        s*) pw_show "$2" ;;
+        l*) pw_list      ;;
+        *)  usage
+    esac
+}
+
+# Ensure that debug mode is never enabled to
+# prevent the password from leaking.
+set +x
+
+# Ensure that globbing is globally disabled
+# to avoid insecurities with word-splitting.
+set -f
+
+[ "$1" ] || usage && main "$@"
