@@ -8,7 +8,7 @@ A simple password manager using [age](https://github.com/FiloSottile/age) writte
 - Configurable password generation using `/dev/urandom`.
 - Guards against `set -x`, `ps` and `/proc` leakage.
 - Easily extendible through the shell.
-- Ability to edit passwords using $EDITOR
+- Ability to edit passwords using `$EDITOR`
 
 ## Table of Contents
 
