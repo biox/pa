@@ -39,7 +39,6 @@ pa 0.1.0 - age-based password manager
 => [d]el  [name] - Delete a password entry.
 => [e]dit [name] - Edit a password entry with vim.
 => [l]ist        - List all entries.
-=> [r]otate      - Generate a new age key, re-encrypt all passwords.
 => [s]how [name] - Show password for an entry.
 Password length:   export PA_LENGTH=50
 Password pattern:  export PA_PATTERN=_A-Z-a-z-0-9
