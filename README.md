@@ -51,7 +51,7 @@ Store location:    export PA_DIR=~/.local/share/pa
 
 I was looking for a shell-based password manager that used age. Actually, see my blog post if you're really that curious:
 
-https://j3s.sh/thoughts/storing-passwords-with-age.txt
+https://j3s.sh/thoughts/storing-passwords-with-age.html
 
 ### Where are passwords stored?
 
