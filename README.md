@@ -1,13 +1,8 @@
-
-## Will update this laster.
-
-
 # passage - age based password/secrets manager
 
-A simple password manager using [age](https://github.com/FiloSottile/age) written in POSIX `bash`. Based on [pash](https://github.com/dylanaraps/pash) by [dylanaraps](https://github.com/dylanaraps). I forked this project from [pa] https://github.com/biox/pa by [biox](https://github.com/biox/).  Also, this has nothing to do with [passage] https://github.com/stchris/passage which was based on Rust and that project appears to be archived.
+A simple password manager using [age](https://github.com/FiloSottile/age) written in POSIX `bash`. Based on [pash](https://github.com/dylanaraps/pash) by [dylanaraps](https://github.com/dylanaraps). I forked this project from [pa](https://github.com/biox/pa) by [biox](https://github.com/biox/).  Also, this implementation of passage has nothing to do with [passage](https://github.com/stchris/passage) which was based on Rust and that project appears to be archived.
 
 - Automatically generates an `age` key if one is not detected.
-- Written in safe and [shellcheck](https://www.shellcheck.net/) compliant POSIX `bashsh`.
 - Only `120~` LOC (*minus blank lines and comments*).
 - Configurable password generation using `/dev/urandom`.
 - Guards against `set -x`, `ps` and `/proc` leakage.
@@ -85,8 +80,11 @@ You can change the password length
 And you can set your password characters
 # Password pattern:  export PA_PATTERN=_A-Z-a-z-0-9
 ```
-
-### How do I rename an entry?
+Or you can set it to whatever directory you want:
+```sh
+export PA_DIR=~/.local/some_other_dir
+```
+### Any other environment variables?
 
 You can just drop into your $PASSAGE_DIR, and merely just rename the file.  `mv test_file.age new_test_file.age`
 
