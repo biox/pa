@@ -6,7 +6,7 @@
 # I editied it for my own experimentation and implementation
 
 # this is where we store our encrypted entries
-PA_DIR=(~/.passage)
+PASSAGE_DIR=(~/.passage)
 privkey=(~/.config/age/chrisswanda.priv.age) #This is my default age credential storage location
 
 pw_show() {
@@ -15,9 +15,6 @@ pw_show() {
 }
 
 pw_copy() {
-    # Disable warning against word-splitting as it is safe
-    # and intentional (globbing is disabled).
-    # shellcheck disable=2086
     # : "${PAGE_CLIP:=xclip -sel c}"
     : "${PAGE_CLIP:=pbcopy}"
 
@@ -51,17 +48,9 @@ pw_add() {
     name=$1
 
     if yn "Generate a password?"; then
-        # Generate a password by reading '/dev/urandom' with the
-        # 'tr' command to translate the random bytes into a
-        # configurable character set.
-        #
-        # The 'dd' command is then used to read only the desired
-        # password length.
-        #
-        # Regarding usage of '/dev/urandom' instead of '/dev/random'.
-        # See: https://www.2uo.de/myths-about-urandom
+
         pass=$(LC_ALL=C tr -dc "${PA_PATTERN:-_A-Z-a-z-0-9}" < /dev/urandom |
-            dd ibs=1 obs=1 count="${PA_LENGTH:-21}" 2>/dev/null)
+            dd ibs=1 obs=1 count="${PA_LENGTH:-17}" 2>/dev/null)
 
     else
         # 'sread()' is a simple wrapper function around 'read'
@@ -69,9 +58,6 @@ pw_add() {
         sread pass  "Enter password"
         sread pass2 "Enter password (again)"
 
-        # Disable this check as we dynamically populate the two
-        # passwords using the 'sread()' function.
-        # shellcheck disable=2154
         [ "$pass" = "$pass2" ] || die "Passwords do not match"
     fi
 
@@ -81,13 +67,6 @@ pw_add() {
     # the function's argument list. This is very apt isn't it?
     set -- -c
 
-    # Use 'age' to store the password in an encrypted file.
-    # A heredoc is used here instead of a 'printf' to avoid
-    # leaking the password through the '/proc' filesystem.
-    #
-    # Heredocs are sometimes implemented via temporary files,
-    # however this is typically done using 'mkstemp()' which
-    # is more secure than a leak in '/proc'.
     age -r "$pubkey" -o "$name.age" <<-EOF &&
 		$pass
 	EOF
@@ -99,16 +78,8 @@ pw_edit() {
 
     [ -f "$name.age" ] || die "Failed to access $name"
 
-    # we use /dev/shm because it's an in-memory
-    # space that we can use to store private data,
-    # and securely wipe it without worrying about
-    # residual badness
-
-    # MacOS does not have /dev/shm, using something else
-
-    # Commented out the check for /dev/shm because creating
-    # random dir each run. It would fail everytime.
     # [ -d /dev/shm ] || die "Failed to access /dev/shm"
+    # MacOS does not have /dev/shm, using something else
     tmpdir="/tmp/$(openssl rand -hex 16)"
 
     mkdir -p $tmpdir
@@ -130,29 +101,26 @@ pw_del() {
     yn "Delete pass file '$1'?" && {
         rm -f "$1.age"
 
-        # Remove empty parent directories of a password
-        # entry. It's fine if this fails as it means that
-        # another entry also lives in the same directory.
         rmdir -p "${1%/*}" 2>/dev/null || :
     }
 }
 
 pw_git() { #need to figure out pass style git commands here
     # case $1 in
-        # g*)
-            cd "$PA_DIR"
+    #     g*)
+            cd "$PAGE_DIR"
             # shift
             git "$@"
-        # ;;
+    #     ;;
 
-        # *)
-            # command passage "$@"
-        # ;;
+    #     *)
+    #         command passage "$@"
+    #     ;;
     # esac
 }
 
 pw_gen() {
-    if yn "$PA_DIR not detected, generate a new one?"; then
+    if yn "$PASSAGE_DIR not detected, generate a new one?"; then
         mkdir -p ~/.passage
         # Below is a password protected private key.
         # use age-keygen -o ~/output for standard key pair
@@ -226,7 +194,7 @@ exit 0
 }
 
 main() {
-    : "${PA_DIR:=${XDG_DATA_HOME:=$HOME/}.passage}"
+    : "${PASSAGE_DIR:=${XDG_DATA_HOME:=$HOME/}.passage}"
 
     command -v age >/dev/null 2>&1 ||
         die "age not found, install per https://github.com/FiloSottile/age"
@@ -234,10 +202,10 @@ main() {
     command -v age-keygen >/dev/null 2>&1 ||
         die "age-keygen not found, install per https://github.com/FiloSottile/age"
 
-    mkdir -p "$PA_DIR" ||
+    mkdir -p "$PASSAGE_DIR" ||
         die "Couldn't create password directory"
 
-    cd "$PA_DIR" ||
+    cd "$PASSAGE_DIR" ||
         die "Can't access password directory"
 
     glob "$1" '[acdes]*' && [ -z "$2" ] &&
