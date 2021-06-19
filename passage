@@ -1,6 +1,14 @@
-#!/bin/sh
+#!/bin/bash
 #
 # pa - simple age-based password manager
+# Original script and all the credit goes to https://github.com/biox/pa
+#
+# I editied it for my own experimentation and implementation
+
+# this is where we store our encrypted entries
+# I'll sync the ~/.passage dir to my personal git repo manually.  pass-like actions one day maybe.
+PA_DIR=(~/.passage)
+privkey=(~/.config/age/chrisswanda.priv.age) #This is my default age credential storage location
 
 pw_add() {
     name=$1
@@ -16,7 +24,7 @@ pw_add() {
         # Regarding usage of '/dev/urandom' instead of '/dev/random'.
         # See: https://www.2uo.de/myths-about-urandom
         pass=$(LC_ALL=C tr -dc "${PA_PATTERN:-_A-Z-a-z-0-9}" < /dev/urandom |
-            dd ibs=1 obs=1 count="${PA_LENGTH:-50}" 2>/dev/null)
+            dd ibs=1 obs=1 count="${PA_LENGTH:-21}" 2>/dev/null)
 
     else
         # 'sread()' is a simple wrapper function around 'read'
@@ -58,13 +66,19 @@ pw_edit() {
     # space that we can use to store private data,
     # and securely wipe it without worrying about
     # residual badness
-    [ -d /dev/shm ] || die "Failed to access /dev/shm"
 
-    mkdir -p /dev/shm/pa
-    trap 'rm -rf /dev/shm/pa' EXIT
-    tmpfile="/dev/shm/pa/$name.txt"
+    # MacOS does not have /dev/shm, using something else
 
-    age -i ~/.age/key.txt --decrypt "$1.age" 2>/dev/null > "$tmpfile" ||
+    # Commented out the check for /dev/shm because creating
+    # random dir each run. It would fail everytime.
+    # [ -d /dev/shm ] || die "Failed to access /dev/shm"
+    tmpdir="/tmp/$(openssl rand -hex 16)"
+
+    mkdir -p $tmpdir
+    trap 'rm -rf $tmpdir' EXIT
+    tmpfile="$tmpdir/$name.txt"
+
+    age -i $privkey --decrypt "$1.age" 2>/dev/null > "$tmpfile" ||
         die "Could not decrypt $1.age"
 
     "${EDITOR:-vi}" "$tmpfile"
@@ -87,7 +101,7 @@ pw_del() {
 }
 
 pw_show() {
-    age -i ~/.age/key.txt --decrypt "$1.age" 2>/dev/null ||
+    age -i $privkey --decrypt "$1.age" 2>/dev/null ||
         die "Could not decrypt $1.age"
 }
 
@@ -96,9 +110,11 @@ pw_list() {
 }
 
 pw_gen() {
-    if yn "$HOME/.age/key.txt not detected, generate a new one?"; then
-        mkdir -p ~/.age
-        age-keygen -o ~/.age/key.txt
+    if yn "$PA_DIR not detected, generate a new one?"; then
+        mkdir -p ~/.passage
+        # Below is a password protected private key.
+        # use age-keygen -o ~/output for standard key pair
+        age-keygen | age -p > $privkey
     fi
 }
 
@@ -161,15 +177,15 @@ pa 0.1.0 - age-based password manager
 => [e]dit [name] - Edit a password entry with $EDITOR.
 => [l]ist        - List all entries.
 => [s]how [name] - Show password for an entry.
-Password length:   export PA_LENGTH=50
+Password length:   export PA_LENGTH=17
 Password pattern:  export PA_PATTERN=_A-Z-a-z-0-9
-Store location:    export PA_DIR=~/.local/share/pa
+Store location:    export PA_DIR=~/.passage
 "
 exit 0
 }
 
 main() {
-    : "${PA_DIR:=${XDG_DATA_HOME:=$HOME/.local/share}/pa}"
+    : "${PA_DIR:=${XDG_DATA_HOME:=$HOME/}.pa}"
 
     command -v age >/dev/null 2>&1 ||
         die "age not found, install per https://github.com/FiloSottile/age"
@@ -205,8 +221,8 @@ main() {
     # only the current user.
     umask 077
 
-    [ -f ~/.age/key.txt ] || pw_gen
-    pubkey=$(sed -n 's/.*\(age\)/\1/p' ~/.age/key.txt)
+    [ -f ~/.config/age/chrisswanda.priv.age ] || pw_gen
+    pubkey=$(cat ~/.config/age/chrisswanda.pub.age)
 
     # Ensure that we leave the terminal in a usable
     # state on exit or Ctrl+C.
