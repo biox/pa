@@ -1,32 +1,50 @@
 #!/bin/bash
 #
-# pa - simple age-based password manager
+# passage - age based password/secrets manager
 # Original script and all the credit goes to https://github.com/biox/pa
 #
 # I editied it for my own experimentation and implementation
 
 # this is where we store our encrypted entries
-# I'll sync the ~/.passage dir to my personal git repo manually.  pass-like actions one day maybe.
 PA_DIR=(~/.passage)
 privkey=(~/.config/age/chrisswanda.priv.age) #This is my default age credential storage location
 
-# Optional variables if you want to set them
-# Password length:   export PA_LENGTH=21
-# Password pattern:  export PA_PATTERN=_A-Z-a-z-0-9
-# Store location:    export PA_DIR=~/.passage
+pw_show() {
+    age -i $privkey --decrypt "$1.age" 2>/dev/null ||
+        die "Could not decrypt $1.age"
+}
 
-pw_git() { #need to figure out pass style git commands here
-    # case $1 in
-        # g*)
-            cd "$PA_DIR"
-            # shift
-            git "$@"
-        # ;;
+pw_copy() {
+    # Disable warning against word-splitting as it is safe
+    # and intentional (globbing is disabled).
+    # shellcheck disable=2086
+    # : "${PAGE_CLIP:=xclip -sel c}"
+    : "${PAGE_CLIP:=pbcopy}"
 
-        # *)
-            # command passage "$@"
-        # ;;
-    # esac
+    pw_show "$1" | $PAGE_CLIP
+
+    # Wait in the background for the password timeout and
+    # clear the clipboard when the timer runs out.
+    #
+    # If the 'sleep' fails, kill the script. This is the
+    # simplest method of aborting from a subshell.
+    [ "$PAGE_TIMEOUT" != off ] && {
+        printf 'Clearing clipboard in %s seconds.\n' "${PAGE_TIMEOUT:=30}"
+
+        sleep "$PAGE_TIMEOUT" || kill 0
+        $PAGE_CLIP </dev/null
+    } &
+}
+
+pw_list() {
+    find . -type f -name \*.age | sed 's/..//;s/\.age$//'
+}
+
+pw_tree() {
+    command -v tree >/dev/null 2>&1 ||
+        die "'tree' command not found"
+
+    tree --noreport | sed 's/\.age$//'
 }
 
 pw_add() {
@@ -119,13 +137,18 @@ pw_del() {
     }
 }
 
-pw_show() {
-    age -i $privkey --decrypt "$1.age" 2>/dev/null ||
-        die "Could not decrypt $1.age"
-}
+pw_git() { #need to figure out pass style git commands here
+    # case $1 in
+        # g*)
+            cd "$PA_DIR"
+            # shift
+            git "$@"
+        # ;;
 
-pw_list() {
-    find . -type f -name \*.age | sed 's/..//;s/\.age$//'
+        # *)
+            # command passage "$@"
+        # ;;
+    # esac
 }
 
 pw_gen() {
@@ -190,11 +213,13 @@ die() {
 }
 
 usage() { printf %s "\
-- add  [name]    - Create a new password, randomly generated
-- del  [name]    - Delete a password entry.
-- edit [name]    - Edit a password entry with vim.
-- list           - List all entries.
 - show [name]    - Show password for an entry.
+- copy [name]    - Copy password to clipboard. Clears in 30 seconds.
+- list           - List all entries.
+- tree           - List all entries in a tree.
+- add  [name]    - Create a new password, randomly generated.
+- edit [name]    - Edit a password entry with vim.
+- del  [name]    - Delete a password entry.
 - git  [command] - push, pull, status
 "
 exit 0
@@ -245,13 +270,15 @@ main() {
     [ -t 1 ] && trap 'stty echo icanon' INT EXIT
 
     case $1 in
-        add) pw_add  "$2" ;;
-        del) pw_del  "$2" ;;
-        edit) pw_edit "$2" ;;
-        show) pw_show "$2" ;;
-        list) pw_list      ;;
-        git) pw_git  "$2" ;;
-        *)  usage
+        show) pw_show  "$2"  ;;
+        copy) pw_copy  "$2"  ;;
+        list) pw_list        ;;
+        tree) pw_tree        ;;
+        add)  pw_add   "$2"  ;;
+        edit) pw_edit  "$2"  ;;
+        del)  pw_del   "$2"  ;;
+        git)  pw_git   "$2"  ;;
+        *)    usage          ;;
     esac
 }
 

@@ -80,8 +80,11 @@ You can change the password length
 And you can set your password characters
 # Password pattern:  export PA_PATTERN=_A-Z-a-z-0-9
 ```
-
-### How do I rename an entry?
+Or you can set it to whatever directory you want:
+```sh
+export PA_DIR=~/.local/some_other_dir
+```
+### Any other environment variables?
 
 You can just drop into your $PASSAGE_DIR, and merely just rename the file.  `mv test_file.age new_test_file.age`
 
