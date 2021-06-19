@@ -1,6 +1,6 @@
 #!/bin/bash
 
-pub_key=$(cat ~/.config/age/chrisswanda.pub.age)
+pub_key=$(cat ~/.config/age/username.pub.age)
 
 read -ep "Enter input file name > "  input
 
