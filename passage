@@ -10,6 +10,20 @@
 PA_DIR=(~/.passage)
 privkey=(~/.config/age/chrisswanda.priv.age) #This is my default age credential storage location
 
+pw_git() {
+    # case $1 in
+    #     g*)
+            cd "${PA_DIR:=${XDG_DATA_HOME:=$HOME/}.passage}"
+            # shift
+            git "$@"
+    #     ;;
+
+    #     *)
+    #         command passage "$@"
+    #     ;;
+    # esac
+}
+
 pw_add() {
     name=$1
 
@@ -171,12 +185,13 @@ die() {
 }
 
 usage() { printf %s "\
-pa 0.1.0 - age-based password manager
+pass 0.0.1 - age-based password manager
 => [a]dd  [name] - Create a new password, randomly generated
 => [d]el  [name] - Delete a password entry.
 => [e]dit [name] - Edit a password entry with $EDITOR.
 => [l]ist        - List all entries.
 => [s]how [name] - Show password for an entry.
+=> [g]it         - Git commands
 Password length:   export PA_LENGTH=17
 Password pattern:  export PA_PATTERN=_A-Z-a-z-0-9
 Store location:    export PA_DIR=~/.passage
@@ -185,7 +200,7 @@ exit 0
 }
 
 main() {
-    : "${PA_DIR:=${XDG_DATA_HOME:=$HOME/}.pa}"
+    : "${PA_DIR:=${XDG_DATA_HOME:=$HOME/}.passage}"
 
     command -v age >/dev/null 2>&1 ||
         die "age not found, install per https://github.com/FiloSottile/age"
@@ -234,6 +249,7 @@ main() {
         e*) pw_edit "$2" ;;
         s*) pw_show "$2" ;;
         l*) pw_list      ;;
+        g*) pw_git  "$2" ;;
         *)  usage
     esac
 }
