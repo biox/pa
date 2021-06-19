@@ -8,6 +8,9 @@ I've been a user of Pass (www.passwordstore.org) and have been using, along with
 
 Changes thus far for my usage are: using `.passage` for storage, I use `~/.config/age` to store my keypairs, since MacOS doesn't use `/dev/shm` I added a random `/tmp` directory using OpenSSL, and `age-keygen` is a password protected file.
 
+I'm also throwing in a few scripts that I have used in the past for age encryption and decryption, as I have been trying to integrate age into my day to day workflows.  Can be seen here too -> https://gist.github.com/chrisswanda/bc537f87df7ab958773b3dab2d8f1f44
+
+If anyone that has worked with me, knows ones of the first questions I ask, is "do you have a PGP public key?"  Throughout my career, I have been a big proponent of encryption at rest and in transit, along with seeing blantant disregard for security in various situations.  I've seen far too many executives, junior engineers, vendors, and IT persons passing around credentials in plain text... I honestly do not understand the negativate comments about PGP, its complexity and usability.  Maybe it is our point and click society today... dunno.  Regardless, since age is now in official release, hopefully we will see more adoption, cool new programs with some slick UIs and hopefully mobile apps.
 
 
 Will update this laster.
