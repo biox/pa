@@ -10,17 +10,22 @@
 PA_DIR=(~/.passage)
 privkey=(~/.config/age/chrisswanda.priv.age) #This is my default age credential storage location
 
-pw_git() {
+# Optional variables if you want to set them
+# Password length:   export PA_LENGTH=21
+# Password pattern:  export PA_PATTERN=_A-Z-a-z-0-9
+# Store location:    export PA_DIR=~/.passage
+
+pw_git() { #need to figure out pass style git commands here
     # case $1 in
-    #     g*)
-            cd "${PA_DIR:=${XDG_DATA_HOME:=$HOME/}.passage}"
+        # g*)
+            cd "$PA_DIR"
             # shift
             git "$@"
-    #     ;;
+        # ;;
 
-    #     *)
-    #         command passage "$@"
-    #     ;;
+        # *)
+            # command passage "$@"
+        # ;;
     # esac
 }
 
@@ -185,16 +190,12 @@ die() {
 }
 
 usage() { printf %s "\
-pass 0.0.1 - age-based password manager
-=> [a]dd  [name] - Create a new password, randomly generated
-=> [d]el  [name] - Delete a password entry.
-=> [e]dit [name] - Edit a password entry with $EDITOR.
-=> [l]ist        - List all entries.
-=> [s]how [name] - Show password for an entry.
-=> [g]it         - Git commands
-Password length:   export PA_LENGTH=17
-Password pattern:  export PA_PATTERN=_A-Z-a-z-0-9
-Store location:    export PA_DIR=~/.passage
+- add  [name]    - Create a new password, randomly generated
+- del  [name]    - Delete a password entry.
+- edit [name]    - Edit a password entry with vim.
+- list           - List all entries.
+- show [name]    - Show password for an entry.
+- git  [command] - push, pull, status
 "
 exit 0
 }
@@ -236,7 +237,7 @@ main() {
     # only the current user.
     umask 077
 
-    [ -f ~/.config/age/chrisswanda.priv.age ] || pw_gen
+    [ -f $privkey ] || pw_gen
     pubkey=$(cat ~/.config/age/chrisswanda.pub.age)
 
     # Ensure that we leave the terminal in a usable
@@ -244,12 +245,12 @@ main() {
     [ -t 1 ] && trap 'stty echo icanon' INT EXIT
 
     case $1 in
-        a*) pw_add  "$2" ;;
-        d*) pw_del  "$2" ;;
-        e*) pw_edit "$2" ;;
-        s*) pw_show "$2" ;;
-        l*) pw_list      ;;
-        g*) pw_git  "$2" ;;
+        add) pw_add  "$2" ;;
+        del) pw_del  "$2" ;;
+        edit) pw_edit "$2" ;;
+        show) pw_show "$2" ;;
+        list) pw_list      ;;
+        git) pw_git  "$2" ;;
         *)  usage
     esac
 }
