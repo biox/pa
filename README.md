@@ -80,13 +80,20 @@ Set the environment variable `PA_DIR` to a directory.
 
 ```sh
 # Default: '~/.passage'.
-export PA_DIR=~/.passage
+export PA_DIR=~/.local/some_other_dir
 
 ```
 
 ### How do I rename an entry?
 
-It's a file! Standard UNIX utilities can be used here.
+Just use standard POSIX, since the encrypted passwords are just merely files.  
+
+For example: 
+```sh
+> cd .passage
+> ls *.age
+> mv foo.age bar.age
+```
 
 
 ### How can I extend `passage`?
