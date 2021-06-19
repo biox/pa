@@ -1,8 +1,0 @@
-#!/bin/sh
-
-cd "${PA_DIR:-$HOME/.local/share/pa}"
-password_files="$(find * -type f | grep -v '/.git')"
-password=$(printf '%s\n' "$password_files" | sed 's/.age//' | rofi -dmenu "$@")
-
-pa show "$password" | head -n 1 |
-    xdotool type --clearmodifiers --file -
