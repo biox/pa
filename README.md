@@ -54,15 +54,12 @@ Examples: `passage add web/gmail`, `passage list`, `passage del facebook`, `pass
 USAGE
 
 passage 0.0.1 - age-based password manager
-=> [a]dd  [name]    - Create a new password, randomly generated
-=> [d]el  [name]    - Delete a password entry.
-=> [e]dit [name]    - Edit a password entry with vim.
-=> [l]ist           - List all entries.
-=> [s]how [name]    - Show password for an entry.
-=> [g]it  [command] - push, pull, status
-Password length:   export PA_LENGTH=21
-Password pattern:  export PA_PATTERN=_A-Z-a-z-0-9
-Store location:    export PA_DIR=~/.passage
+- add  [name]    - Create a new password, randomly generated
+- del  [name]    - Delete a password entry.
+- edit [name]    - Edit a password entry with vim.
+- list           - List all entries.
+- show [name]    - Show password for an entry.
+- git  [command] - push, pull, statusStore location:    export PA_DIR=~/.passage
 ```
 
 ## FAQ
