@@ -2,6 +2,8 @@ I will be updating this later.
 
 This is forked from https://github.com/biox/pa and this user gets all the credit.  I am just a ham fisted knucklehead and have never claimed to be a developer.
 
+Also, this has nothing to do with `passage` https://github.com/stchris/passage which appears to be archived.
+
 I've been a user of Pass (www.passwordstore.org) and have been using, along with following Age for a long time.  I've been waiting for Age and Pass to get together at some time, so when I saw `pa` as a pass/age hybrid, figured I'd mess around with it.  
 
 Changes thus far for my usage are: using `.passage` for storage, I use `~/.config/age` to store my keypairs, since MacOS doesn't use `/dev/shm` I added a random `/tmp` directory using OpenSSL, and `age-keygen` is a password protected file.
@@ -11,7 +13,7 @@ Changes thus far for my usage are: using `.passage` for storage, I use `~/.confi
 Will update this laster.
 
 
-# password ass (pa)
+# passage
 
 A simple password manager using [age](https://github.com/FiloSottile/age) written in POSIX `sh`. Based on [pash](https://github.com/dylanaraps/pash) by [dylanaraps](https://github.com/dylanaraps).
 
