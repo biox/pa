@@ -44,10 +44,11 @@ A simple password manager using [age](https://github.com/FiloSottile/age) writte
 ## Dependencies
 
 - `age`
+- `age-keygen`
 
 ## Usage
 
-Examples: `passage add web/gmail`, `passage list`, `passage del facebook`, `passage show github`, `passage edit sourcehut`.
+Examples: `passage add web/gmail`, `passage list`, `passage del facebook`, `passage show github`, `passage edit sourcehut`, `passage git pull/push/status`.
 
 ```
 USAGE
@@ -58,7 +59,7 @@ passage 0.0.1 - age-based password manager
 => [e]dit [name] - Edit a password entry with vim.
 => [l]ist        - List all entries.
 => [s]how [name] - Show password for an entry.
-Password length:   export PA_LENGTH=50
+Password length:   export PA_LENGTH=21
 Password pattern:  export PA_PATTERN=_A-Z-a-z-0-9
 Store location:    export PA_DIR=~/.passage
 ```
@@ -73,7 +74,7 @@ https://j3s.sh/thoughts/storing-passwords-with-age.html
 
 ### Where are passwords stored?
 
-The passwords are stored in `age` encrypted files located at `${XDG_DATA_HOME:=$HOME/.local/share}/pa}`.
+The passwords are stored in `age` encrypted files located at `${XDG_DATA_HOME:=$HOME/}.passage}`.
 
 ### How do I change the password store location?
 
@@ -83,14 +84,11 @@ Set the environment variable `PA_DIR` to a directory.
 # Default: '~/.passage'.
 export PA_DIR=~/.passage
 
-# This can also be used as a one-off.
-PA_DIR=/mnt/drive/pa pa list
 ```
 
 ### How do I rename an entry?
 
 It's a file! Standard UNIX utilities can be used here.
-
 
 
 ### How can I extend `passage`?
