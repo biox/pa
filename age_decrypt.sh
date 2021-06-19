@@ -1,6 +1,6 @@
 #!/bin/bash
 
-priv_key=(~/.config/age/chrisswanda.priv.age)
+priv_key=(~/.config/age/username.priv.age)
 
 read -ep "Enter encrypted .age file > " input
 
