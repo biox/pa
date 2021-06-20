@@ -15,18 +15,6 @@ Changes thus far for my usage are: using `.passage` for storage, I use `~/.confi
 
 I'm also throwing in a few scripts that I have used in the past for age encryption and decryption, as I have integrated `age` into my day to day usage.  The gist can be seen here also -> https://gist.github.com/chrisswanda/bc537f87df7ab958773b3dab2d8f1f44
 
-## Table of Contents
-
-<!-- vim-markdown-toc GFM -->
-
-* [Dependencies](#dependencies)
-* [Usage](#usage)
-* [FAQ](#faq)
-    * [Where are passwords stored?](#where-are-passwords-stored)
-    * [How do I rename an entry?](#how-do-i-rename-an-entry)
-    * [How can I extend passage?](#how-can-i-extend-passage)
-
-<!-- vim-markdown-toc -->
 
 ## Dependencies
 
@@ -35,12 +23,19 @@ I'm also throwing in a few scripts that I have used in the past for age encrypti
 
 ## Usage
 
-Examples: `passage add web/gmail`, `passage list`, `passage del facebook`, `passage show github`, `passage edit sourcehut`, `passage git pull/push/status`.
+Examples: 
+   `passage show github`
+   `passage copy Travel/Uber`
+   `passage list`
+   `passage tree`
+   `passage add Web/gmail`
+   `passage edit Finance/ETrade`
+   `passage del Social/Facebook`
+   `passage git {pull}{push}{status}`
 
 ```
 USAGE
 
-passage 0.0.1 - age-based password manager
 - show [name]    - Show password for an entry.
 - copy [name]    - Copy password to clipboard. Clears in 30 seconds.
 - list           - List all entries.
@@ -50,6 +45,21 @@ passage 0.0.1 - age-based password manager
 - del  [name]    - Delete a password entry.
 - git  [command] - push, pull, status
 ```
+
+I have included something that resembles autocomplete.
+```
+$passage {tab}
+add   copy  del   edit  git   list  show  tree
+```
+Add this to your autocomplete directory.
+
+`$cp passage_autocomplete /usr/local/etc/bash_completion.d/passage_autocomplete`
+
+Then you can source it `$source /usr/local/etc/bash_completion.d/passage_autocomplete`
+
+or add it to your `~.bashrc`
+`[[ -r "/usr/local/etc/bash_completion.d/passage_autocomplete" ]] && source "/usr/local/etc/bash_completion.d/passage_autocomplete"`
+
 
 ## FAQ
 
@@ -86,7 +96,7 @@ export PA_DIR=~/.local/some_other_dir
 ```
 ### Any other environment variables?
 
-You can just drop into your $PASSAGE_DIR, and merely just rename the file.  `mv test_file.age new_test_file.age`
+You can just drop into your $PASSAGE_DIR, and merely just rename the file.  `$mv test_file.age new_test_file.age`
 
 ### How can I extend `passage`?
 
