@@ -186,7 +186,7 @@ usage() { printf %s "\
 - list           - List all entries.
 - tree           - List all entries in a tree.
 - add  [name]    - Create a new password, randomly generated.
-- edit [name]    - Edit a password entry with vim.
+- edit [name]    - Edit a password entry using your editor.
 - del  [name]    - Delete a password entry.
 - git  [command] - push, pull, status
 "
