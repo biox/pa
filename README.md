@@ -24,14 +24,16 @@ I'm also throwing in a few scripts that I have used in the past for age encrypti
 ## Usage
 
 Examples: 
-  - `passage show github`
-  - `passage copy Travel/Uber`
-  - `passage list`
-  - `passage tree`
-  - `passage add Web/gmail`
-  - `passage edit Finance/ETrade`
-  - `passage del Social/Facebook`
-  - `passage git {pull}{push}{status}`
+```
+  passage show github
+  passage copy Travel/Uber
+  passage list
+  passage tree
+  passage add Web/gmail
+  passage edit Finance/ETrade
+  passage del Social/Facebook
+  passage git {pull}{push}{status}
+  ```
 
 ```
 USAGE
