@@ -85,7 +85,7 @@ _passage()
 					_passage_complete_folders
 					compopt -o nospace
 				else
-					COMPREPLY+=($(compgen -W "-p --path" -- ${cur}))
+					COMPREPLY+=($(compgen -W "-p --path" -- ${cur})) #need to fix this section.
 					_passage_complete_keys
 				fi
 				;;
