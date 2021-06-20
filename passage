@@ -1,9 +1,11 @@
 #!/bin/bash
 #
 # passage - age based password/secrets manager
-# Original script and all the credit goes to https://github.com/biox/pa
+# Original script is from https://github.com/dylanaraps/pash
+# and the credit goes to https://github.com/biox/pa for using age
+# for the encryption.
 #
-# I editied it for my own experimentation and implementation
+# This is my version for my own experimentation and implementation.
 
 # this is where we store our encrypted entries
 PASSAGE_DIR=(~/.passage)
@@ -16,6 +18,7 @@ pw_show() {
 
 pw_copy() {
     # : "${PAGE_CLIP:=xclip -sel c}"
+    #MacOS doesn't use xclip natively, using pbcopy
     : "${PAGE_CLIP:=pbcopy}"
 
     pw_show "$1" | $PAGE_CLIP
@@ -78,8 +81,6 @@ pw_edit() {
 
     [ -f "$name.age" ] || die "Failed to access $name"
 
-    # tmpdir=$TMPDIR
-
     install $PASSAGE_DIR/$name.age $TMPDIR
     trap 'rm -rf $tmpdir' EXIT
     tmpfile="$TMPDIR*.age"
@@ -108,7 +109,7 @@ pw_git() {
         git)
             cd "$PAGE_DIR"
             shift
-            git "$@"
+            git "$@" #note adding @1 and @2 to the statements below
         ;;
 
         *)
@@ -120,8 +121,9 @@ pw_git() {
 pw_gen() {
     if yn "$PASSAGE_DIR not detected, generate a new one?"; then
         mkdir -p ~/.passage
+        # use age-keygen -o ~/output for standard key pair that is not encrypted.
         # Below is a password protected private key.
-        # use age-keygen -o ~/output for standard key pair
+        # I sync my encrypted private key to different machines.
         age-keygen | age -p > $privkey
     fi
 }
