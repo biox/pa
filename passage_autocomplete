@@ -1,0 +1,23 @@
+#add this to your autocomplete directory
+#
+# cp passage_autocomplete /usr/local/etc/bash_completion.d/passage_autocomplete
+#
+#Then you can source it source "/usr/local/etc/bash_completion.d/passage_autocomplete
+#
+#or add it to your ~.bashrc
+#[[ -r "/usr/local/etc/bash_completion.d/passage_autocomplete" ]] && source "/usr/local/etc/bash_completion.d/passage_autocomplete"
+
+
+_passage()
+{
+  _script_commands=$(~/Development/passage/passage *)
+
+  local cur
+  COMPREPLY=()
+  cur="${COMP_WORDS[COMP_CWORD]}"
+  opts="show copy list tree add edit del git"
+  COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+
+  return 0
+}
+complete -o nospace -F _passage passage

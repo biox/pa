@@ -105,18 +105,18 @@ pw_del() {
     }
 }
 
-pw_git() { #need to figure out pass style git commands here
-    # case $1 in
-    #     g*)
+pw_git() {
+    case $1 in
+        git)
             cd "$PAGE_DIR"
-            # shift
+            shift
             git "$@"
-    #     ;;
+        ;;
 
-    #     *)
-    #         command passage "$@"
-    #     ;;
-    # esac
+        *)
+            command passage "$@"
+        ;;
+    esac
 }
 
 pw_gen() {
@@ -238,15 +238,15 @@ main() {
     [ -t 1 ] && trap 'stty echo icanon' INT EXIT
 
     case $1 in
-        show) pw_show  "$2"  ;;
-        copy) pw_copy  "$2"  ;;
-        list) pw_list        ;;
-        tree) pw_tree        ;;
-        add)  pw_add   "$2"  ;;
-        edit) pw_edit  "$2"  ;;
-        del)  pw_del   "$2"  ;;
-        git)  pw_git   "$2"  ;;
-        *)    usage          ;;
+        show) pw_show  "$2"       ;;
+        copy) pw_copy  "$2"       ;;
+        list) pw_list             ;;
+        tree) pw_tree             ;;
+        add)  pw_add   "$2"       ;;
+        edit) pw_edit  "$2"       ;;
+        del)  pw_del   "$2"       ;;
+        git)  pw_git   "$1" "$2"  ;;
+        *)    usage               ;;
     esac
 }
 
