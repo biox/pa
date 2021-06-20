@@ -78,15 +78,13 @@ pw_edit() {
 
     [ -f "$name.age" ] || die "Failed to access $name"
 
-    # [ -d /dev/shm ] || die "Failed to access /dev/shm"
-    # MacOS does not have /dev/shm, using something else
-    tmpdir="/tmp/$(openssl rand -hex 16)"
+    # tmpdir=$TMPDIR
 
-    mkdir -p $tmpdir
+    install $PASSAGE_DIR/$name.age $TMPDIR
     trap 'rm -rf $tmpdir' EXIT
-    tmpfile="$tmpdir/$name.txt"
+    tmpfile="$TMPDIR*.age"
 
-    age -i $privkey --decrypt "$1.age" 2>/dev/null > "$tmpfile" ||
+    age -i $privkey --decrypt "$PASSAGE_DIR/$1.age" 2>/dev/null > "$tmpfile" ||
         die "Could not decrypt $1.age"
 
     "${EDITOR:-vi}" "$tmpfile"
