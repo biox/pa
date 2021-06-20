@@ -60,6 +60,7 @@ Add this to your autocomplete directory.
 Then you can source it `$source /usr/local/etc/bash_completion.d/passage_autocomplete`
 
 or add it to your `~.bashrc`
+
 `[[ -r "/usr/local/etc/bash_completion.d/passage_autocomplete" ]] && source "/usr/local/etc/bash_completion.d/passage_autocomplete"`
 
 
