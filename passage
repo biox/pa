@@ -81,6 +81,8 @@ pw_edit() {
 
     [ -f "$name.age" ] || die "Failed to access $name"
 
+
+    # used install here.  Section #5 of this page helped - https://www.baeldung.com/linux/create-destination-directory
     install $PASSAGE_DIR/$name.age $TMPDIR
     trap 'rm -rf $tmpdir' EXIT
     tmpfile="$TMPDIR*.age"
@@ -92,8 +94,9 @@ pw_edit() {
 
     [ -f "$tmpfile" ] || die "New password not saved"
 
-    rm "$name.age"
     age -r "$pubkey" -o "$name.age" "$tmpfile"
+
+    rm $tmpfile
 }
 
 pw_del() {
@@ -126,6 +129,10 @@ pw_gen() {
         # I sync my encrypted private key to different machines.
         age-keygen | age -p > $privkey
     fi
+
+    # investigate maybe putting passwords into Keychain
+    # security add-generic-password -s "Passage Password" -a "user.name" -p
+    # PASSWORD=`security find-generic-password -s "Passage Password" -a "user.name" -w`
 }
 
 yn() {
