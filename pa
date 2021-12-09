@@ -60,7 +60,7 @@ pw_edit() {
     # residual badness
     [ -d /dev/shm ] || die "Failed to access /dev/shm"
 
-    mkdir -p /dev/shm/pa
+    mkdir -p "/dev/shm/pa/${name%/*}"
     trap 'rm -rf /dev/shm/pa' EXIT
     tmpfile="/dev/shm/pa/$name.txt"
 
