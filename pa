@@ -60,12 +60,15 @@ pw_edit() {
     # residual badness
     [ -d /dev/shm ] || die "Failed to access /dev/shm"
 
-    mkdir -p /dev/shm/pa
-    trap 'rm -rf /dev/shm/pa' EXIT
+    # get base dirname in case we're dealing with
+    # a nested item (foo/bar)
     tmpfile="/dev/shm/pa/$name.txt"
+    tmpdir="$(dirname $tmpfile)"
+    mkdir -p "$tmpdir"
+    trap 'rm -rf /dev/shm/pa' EXIT
 
-    age -i ~/.age/key.txt --decrypt "$1.age" 2>/dev/null > "$tmpfile" ||
-        die "Could not decrypt $1.age"
+    age -i ~/.age/key.txt --decrypt "$name.age" 2>/dev/null > "$tmpfile" ||
+        die "Could not decrypt $name.age"
 
     "${EDITOR:-vi}" "$tmpfile"
 
