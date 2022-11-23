@@ -15,13 +15,13 @@ pw_add() {
         #
         # Regarding usage of '/dev/urandom' instead of '/dev/random'.
         # See: https://www.2uo.de/myths-about-urandom
-        pass=$(LC_ALL=C tr -dc "${PA_PATTERN:-_A-Z-a-z-0-9}" < /dev/urandom |
+        pass=$(LC_ALL=C tr -dc "${PA_PATTERN:-_A-Z-a-z-0-9}" </dev/urandom |
             dd ibs=1 obs=1 count="${PA_LENGTH:-50}" 2>/dev/null)
 
     else
         # 'sread()' is a simple wrapper function around 'read'
         # to prevent user input from being printed to the terminal.
-        sread pass  "Enter password"
+        sread pass "Enter password"
         sread pass2 "Enter password (again)"
 
         # Disable this check as we dynamically populate the two
@@ -46,7 +46,7 @@ pw_add() {
     age -r "$pubkey" -o "$name.age" <<-EOF &&
 		$pass
 	EOF
-    printf '%s\n' "Saved '$name' to the store."
+        printf '%s\n' "Saved '$name' to the store."
 }
 
 pw_edit() {
@@ -63,11 +63,11 @@ pw_edit() {
     # get base dirname in case we're dealing with
     # a nested item (foo/bar)
     tmpfile="/dev/shm/pa/$name.txt"
-    tmpdir="$(dirname $tmpfile)"
+    tmpdir="$(dirname "$tmpfile")"
     mkdir -p "$tmpdir"
     trap 'rm -rf /dev/shm/pa' EXIT
 
-    age -i ~/.age/key.txt --decrypt "$name.age" 2>/dev/null > "$tmpfile" ||
+    age -i ~/.age/key.txt --decrypt "$name.age" 2>/dev/null >"$tmpfile" ||
         die "Could not decrypt $name.age"
 
     "${EDITOR:-vi}" "$tmpfile"
@@ -149,7 +149,8 @@ glob() {
     #
     # Disable this warning as it is the intended behavior.
     # shellcheck disable=2254
-    case $1 in $2) return 0; esac; return 1
+    case $1 in $2) return 0 ;; esac
+    return 1
 }
 
 die() {
@@ -157,7 +158,8 @@ die() {
     exit 1
 }
 
-usage() { printf %s "\
+usage() {
+    printf %s "\
 pa 0.1.0 - age-based password manager
 => [a]dd  [name] - Create a new password, randomly generated
 => [d]el  [name] - Delete a password entry.
@@ -168,7 +170,7 @@ Password length:   export PA_LENGTH=50
 Password pattern:  export PA_PATTERN=_A-Z-a-z-0-9
 Store location:    export PA_DIR=~/.local/share/pa
 "
-exit 0
+    exit 0
 }
 
 main() {
@@ -216,12 +218,12 @@ main() {
     [ -t 1 ] && trap 'stty echo icanon' INT EXIT
 
     case $1 in
-        a*) pw_add  "$2" ;;
-        d*) pw_del  "$2" ;;
-        e*) pw_edit "$2" ;;
-        s*) pw_show "$2" ;;
-        l*) pw_list      ;;
-        *)  usage
+    a*) pw_add "$2" ;;
+    d*) pw_del "$2" ;;
+    e*) pw_edit "$2" ;;
+    s*) pw_show "$2" ;;
+    l*) pw_list ;;
+    *) usage ;;
     esac
 }
 
