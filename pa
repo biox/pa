@@ -2,6 +2,12 @@
 #
 # pa - simple age-based password manager
 
+: ${PA_LENGTH:=50}
+: ${PA_PATTERN:=_A-Z-a-z-0-9}
+: ${PA_DIR:=${XDG_DATA_HOME:=$HOME/.local/share}/pa}
+: ${PA_PUBKEYS:=${XDG_CONFIG_HOME:=$HOME/.config}/pa/pubkeys}
+: ${PA_PRIVKEYS:=${XDG_CONFIG_HOME:=$HOME/.config}/pa/privkeys}
+
 pw_add() {
     name=$1
 
@@ -15,8 +21,8 @@ pw_add() {
         #
         # Regarding usage of '/dev/urandom' instead of '/dev/random'.
         # See: https://www.2uo.de/myths-about-urandom
-        pass=$(LC_ALL=C tr -dc "${PA_PATTERN:-_A-Z-a-z-0-9}" </dev/urandom |
-            dd ibs=1 obs=1 count="${PA_LENGTH:-50}" 2>/dev/null)
+        pass=$(LC_ALL=C tr -dc "$PA_PATTERN" </dev/urandom |
+            dd ibs=1 obs=1 count="$PA_LENGTH" 2>/dev/null)
 
     else
         # 'sread()' is a simple wrapper function around 'read'
@@ -43,7 +49,7 @@ pw_add() {
     # Heredocs are sometimes implemented via temporary files,
     # however this is typically done using 'mkstemp()' which
     # is more secure than a leak in '/proc'.
-    age -r "$pubkey" -o "$name.age" <<-EOF &&
+    age -R "$PA_PUBKEYS" -o "$name.age" <<-EOF &&
 		$pass
 	EOF
         printf '%s\n' "Saved '$name' to the store."
@@ -67,7 +73,7 @@ pw_edit() {
     mkdir -p "$tmpdir"
     trap 'rm -rf /dev/shm/pa' EXIT
 
-    age -i ~/.age/key.txt --decrypt "$name.age" 2>/dev/null >"$tmpfile" ||
+    age -i "$PA_PRIVKEYS" --decrypt "$name.age" 2>/dev/null >"$tmpfile" ||
         die "Could not decrypt $name.age"
 
     "${EDITOR:-vi}" "$tmpfile"
@@ -75,7 +81,7 @@ pw_edit() {
     [ -f "$tmpfile" ] || die "New password not saved"
 
     rm "$name.age"
-    age -r "$pubkey" -o "$name.age" "$tmpfile"
+    age -R "$PA_PUBKEYS" -o "$name.age" "$tmpfile"
 }
 
 pw_del() {
@@ -90,7 +96,7 @@ pw_del() {
 }
 
 pw_show() {
-    age -i ~/.age/key.txt --decrypt "$1.age" 2>/dev/null ||
+    age -i "$PA_PRIVKEYS" --decrypt "$1.age" 2>/dev/null ||
         die "Could not decrypt $1.age"
 }
 
@@ -98,11 +104,29 @@ pw_list() {
     find . -type f -name \*.age | sed 's/..//;s/\.age$//'
 }
 
-pw_gen() {
-    if yn "$HOME/.age/key.txt not detected, generate a new one?"; then
-        mkdir -p ~/.age
-        age-keygen -o ~/.age/key.txt
+check_age_keygen() {
+    command -v age-keygen >/dev/null 2>&1 ||
+        die "age-keygen not found, install per https://github.com/FiloSottile/age"
+}
+
+pw_init() {
+    if [ ! -f "$PA_PRIVKEYS" ]; then
+        privkeysdir=$(dirname "$PA_PRIVKEYS")
+        mkdir -p "$privkeysdir" || die "Couldn't create dir: $privkeysdir"
+
+        check_age_keygen
+        age-keygen -o "$PA_PRIVKEYS" 2>/dev/null
     fi
+
+    if [ ! -f "$PA_PUBKEYS" ]; then
+        pubkeysdir=$(dirname "$PA_PUBKEYS")
+        mkdir -p "$pubkeysdir" || die "Couldn't create dir: $pubkeysdir"
+        
+        check_age_keygen
+        age-keygen -y -o "$PA_PUBKEYS" "$PA_PRIVKEYS"
+    fi
+
+    mkdir -p "$PA_DIR" || die "Couldn't create password directory"
 }
 
 yn() {
@@ -161,37 +185,44 @@ die() {
 usage() {
     printf %s "\
 pa 0.1.0 - age-based password manager
+
 => [a]dd  [name] - Create a new password, randomly generated
 => [d]el  [name] - Delete a password entry.
 => [e]dit [name] - Edit a password entry with $EDITOR.
+=> [i]nit        - Initialize keys if they don't exist.
 => [l]ist        - List all entries.
 => [s]how [name] - Show password for an entry.
-Password length:   export PA_LENGTH=50
-Password pattern:  export PA_PATTERN=_A-Z-a-z-0-9
-Store location:    export PA_DIR=~/.local/share/pa
+
+Password length:   export PA_LENGTH=$PA_LENGTH
+Password pattern:  export PA_PATTERN=$PA_PATTERN
+Store location:    export PA_DIR=$PA_DIR
+Pubkeys location:  export PA_PUBKEYS=$PA_PUBKEYS
+Privkeys location: export PA_PRIVKEYS=$PA_PRIVKEYS
 "
     exit 0
 }
 
 main() {
-    : "${PA_DIR:=${XDG_DATA_HOME:=$HOME/.local/share}/pa}"
+    glob "$1" '[adels]*' && [ ! -d "$PA_DIR" ] &&
+        die 'The password directory does not exist, try running "pa init"'
 
-    command -v age >/dev/null 2>&1 ||
-        die "age not found, install per https://github.com/FiloSottile/age"
-
-    command -v age-keygen >/dev/null 2>&1 ||
-        die "age-keygen not found, install per https://github.com/FiloSottile/age"
-
-    mkdir -p "$PA_DIR" ||
-        die "Couldn't create password directory"
-
+    # Try entering the password directory only after checking for it.
     cd "$PA_DIR" ||
         die "Can't access password directory"
 
-    glob "$1" '[acdes]*' && [ -z "$2" ] &&
+    glob "$1" '[ades]*' && (command -v age >/dev/null 2>&1 ||
+        die "age not found, install per https://github.com/FiloSottile/age")
+
+    glob "$1" '[es]*' && [ ! -f "$PA_PRIVKEYS" ] &&
+        die 'The privkeys file does not exist, try running "pa init"'
+
+    glob "$1" '[ae]*' && [ ! -f "$PA_PUBKEYS" ] &&
+        die 'The pubkeys file does not exist, try running "pa init"'
+
+    glob "$1" '[ades]*' && [ -z "$2" ] &&
         die "Missing [name] argument"
 
-    glob "$1" '[cds]*' && [ ! -f "$2.age" ] &&
+    glob "$1" '[des]*' && [ ! -f "$2.age" ] &&
         die "Pass file '$2' doesn't exist"
 
     glob "$1" 'a*' && [ -f "$2.age" ] &&
@@ -210,9 +241,6 @@ main() {
     # only the current user.
     umask 077
 
-    [ -f ~/.age/key.txt ] || pw_gen
-    pubkey=$(sed -n 's/.*\(age\)/\1/p' ~/.age/key.txt)
-
     # Ensure that we leave the terminal in a usable
     # state on exit or Ctrl+C.
     [ -t 1 ] && trap 'stty echo icanon' INT EXIT
@@ -223,6 +251,7 @@ main() {
     e*) pw_edit "$2" ;;
     s*) pw_show "$2" ;;
     l*) pw_list ;;
+    i*) pw_init ;;
     *) usage ;;
     esac
 }

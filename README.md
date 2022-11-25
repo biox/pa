@@ -4,7 +4,7 @@ A simple password manager using [age](https://github.com/FiloSottile/age) writte
 
 - Automatically generates an `age` key if one is not detected.
 - Written in safe and [shellcheck](https://www.shellcheck.net/) compliant POSIX `sh`.
-- Only `120~` LOC (*minus blank lines and comments*).
+- Only `150~` LOC (*minus blank lines and comments*).
 - Configurable password generation using `/dev/urandom`.
 - Guards against `set -x`, `ps` and `/proc` leakage.
 - Easily extendible through the shell.
