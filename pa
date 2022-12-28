@@ -105,6 +105,13 @@ pw_gen() {
     fi
 }
 
+depends() {
+    for dep in $@; do
+        command -v "$dep" >/dev/null 2>&1 ||
+        die "$dep not found, install per https://github.com/FiloSottile/age"
+    done
+}
+
 yn() {
     printf '%s [y/n]: ' "$1"
 
@@ -176,11 +183,7 @@ Store location:    export PA_DIR=~/.local/share/pa
 main() {
     : "${PA_DIR:=${XDG_DATA_HOME:=$HOME/.local/share}/pa}"
 
-    command -v age >/dev/null 2>&1 ||
-        die "age not found, install per https://github.com/FiloSottile/age"
-
-    command -v age-keygen >/dev/null 2>&1 ||
-        die "age-keygen not found, install per https://github.com/FiloSottile/age"
+    depends age age-keygen
 
     mkdir -p "$PA_DIR" ||
         die "Couldn't create password directory"
@@ -230,6 +233,9 @@ main() {
 # Ensure that debug mode is never enabled to
 # prevent the password from leaking.
 set +x
+
+# 
+set -e
 
 # Ensure that globbing is globally disabled
 # to avoid insecurities with word-splitting.
