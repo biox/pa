@@ -7,7 +7,7 @@
     - multiple identity/recipient support
     - written in portable posix shell
     - simple to extend
-    - only ~120 lines of code
+    - only ~130 lines of code
     - pronounced "paw"
 
 
