@@ -191,10 +191,10 @@ main() {
     cd "$PA_DIR" ||
         die "Can't access password directory"
 
-    glob "$1" '[acdes]*' && [ -z "$2" ] &&
+    glob "$1" '[ades]*' && [ -z "$2" ] &&
         die "Missing [name] argument"
 
-    glob "$1" '[cds]*' && [ ! -f "$2.age" ] &&
+    glob "$1" '[des]*' && [ ! -f "$2.age" ] &&
         die "Pass file '$2' doesn't exist"
 
     glob "$1" 'a*' && [ -f "$2.age" ] &&
