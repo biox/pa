@@ -99,7 +99,7 @@ pw_list() {
 }
 
 dep() {
-    for dep in $@; do
+    for dep in "$@"; do
         command -v "$dep" >/dev/null 2>&1 ||
             die "$dep not found, install per https://github.com/FiloSottile/age"
     done
