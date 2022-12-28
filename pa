@@ -64,8 +64,17 @@ pw_edit() {
     # a nested item (foo/bar)
     tmpfile="/dev/shm/pa/$name.txt"
     tmpdir="$(dirname "$tmpfile")"
-    mkdir -p "$tmpdir"
+
+    # We want to clear the way for mkdir if we run
+    # into unexpected state, but we also want to trap
+    # that removal as a security precaution.
+    #
+    # Dying on mkdir is a security precaution as well, since
+    # mkdir will fail if the directory already exists (in which
+    # case, someone else may own it).
     trap 'rm -rf /dev/shm/pa' EXIT
+    rm -rf /dev/shm/pa
+    mkdir "$tmpdir" || die "Failed to create tmpdir, check perms on $tmpdir"
 
     age -i "$identities_file" --decrypt "$name.age" 2>/dev/null >"$tmpfile" ||
         die "Could not decrypt $name.age"
