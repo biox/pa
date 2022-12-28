@@ -1,0 +1,88 @@
+                   pa
+         a simple password manager
+
+  features
+    - encryption implemented using age[1]
+    - automatic key generation
+    - multiple identity/recipient support
+    - written in portable posix shell
+    - simple to extend
+    - only ~120 lines of code
+    - pronounced "paw"
+
+
+  dependencies
+    - age
+    - age-keygen
+
+
+  usage
+    $ pa help
+    pa
+      a simple password manager based on age
+
+    commands:
+      [a]dd  [name] - Add a password entry.
+      [d]el  [name] - Delete a password entry.
+      [e]dit [name] - Edit a password entry with nvim.
+      [l]ist        - List all entries.
+      [s]how [name] - Show password for an entry.
+
+    env vars:
+      Password length:   export PA_LENGTH=50
+      Password pattern:  export PA_PATTERN=_A-Z-a-z-0-9
+      Password/key dir:  export PA_DIR=~/.local/share/pa
+
+
+  command examples
+    $ pa add test
+    Generate a password? [y/n]: y
+    Saved 'test' to the store.
+
+    $ pa list
+    test
+
+    $ pa show test
+    vJwKuEBtxBVvdR-xppTdfofIei0oLlkoSK4OCSP2bMEBsP6ahM
+
+    $ pa edit test
+    <opens $EDITOR>
+
+    $ pa del test
+    Delete pass file 'test'? [y/n]: y
+
+
+  faq
+    > how does this differ from pass, passage, etc?
+
+      pa is pa-inless. smaller, simpler, cleaner, does it harder, better, 
+      faster, stronger
+
+    > why u make this?
+
+      if you're curious, i wrote a whole blog post about my reasons[2]
+
+    > where are my keys?
+
+      secret: ~/.local/share/pa/identities
+      public: ~/.local/share/pa/recipients
+
+    > where are my passwords?
+
+      probably ~/.local/share/pa/passwords
+
+    > how can i rename a password?
+
+      cd ~/.local/share/pa/passwords
+      mv foo.age bar.age
+
+
+  credits
+    - pa was originally forked from pash[3] by dylanaraps[4]
+    - age is a project by Filippo Valsorda[5]
+
+[1]: https://github.com/FiloSottile/age
+[2]: https://j3s.sh/thought/storing-passwords-with-age.html
+[3]: https://github.com/dylanaraps/pash
+[4]: https://github.com/dylanaraps
+[5]: https://filippo.io
