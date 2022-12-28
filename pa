@@ -193,8 +193,10 @@ main() {
 
     # Move any passwords hanging out in the old dir
     # for backwards-compat reasons
-    set +f
     mv ~/.local/share/pa/*.age "$password_dir" 2>/dev/null
+
+    # Ensure that globbing is disabled
+    # to avoid insecurities with word-splitting.
     set -f
 
     glob "$1" '[aes]*' &&
@@ -222,15 +224,14 @@ main() {
     # only the current user.
     umask 077
 
-    # Copy any existing identities files from the old
+    # First, copy any existing identities files from the old
     # storage location to the new one for backwards compat.
-    [ ! -f "$identities_file" ] &&
-        cp ~/.age/key.txt "$identities_file" 2>/dev/null
-
-    [ ! -f "$identities_file" ] &&
+    # Then, attempt key generation.
+    [ -f "$identities_file" ] ||
+        cp ~/.age/key.txt "$identities_file" 2>/dev/null ||
         age-keygen -o "$identities_file" 2>/dev/null
 
-    [ ! -f "$recipients_file" ] &&
+    [ -f "$recipients_file" ] ||
         age-keygen -y -o "$recipients_file" "$identities_file" 2>/dev/null
 
     # Ensure that we leave the terminal in a usable
@@ -250,9 +251,5 @@ main() {
 # Ensure that debug mode is never enabled to
 # prevent the password from leaking.
 set +x
-
-# Ensure that globbing is globally disabled
-# to avoid insecurities with word-splitting.
-set -f
 
 [ "$1" ] || usage && main "$@"
