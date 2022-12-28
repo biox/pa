@@ -52,13 +52,15 @@ pw_add() {
 pw_edit() {
     name=$1
 
-    [ -f "$name.age" ] || die "Failed to access $name"
+    [ -f "$name.age" ] ||
+        die "Failed to access $name"
 
     # we use /dev/shm because it's an in-memory
     # space that we can use to store private data,
     # and securely wipe it without worrying about
     # residual badness
-    [ -d /dev/shm ] || die "Failed to access /dev/shm"
+    [ -d /dev/shm ] ||
+        die "Failed to access /dev/shm"
 
     # get base dirname in case we're dealing with
     # a nested item (foo/bar)
@@ -66,22 +68,24 @@ pw_edit() {
     tmpdir="$(dirname "$tmpfile")"
 
     # We want to clear the way for mkdir if we run
-    # into unexpected state, but we also want to trap
-    # that removal as a security precaution.
-    #
+    # into unexpected state, and we also want to trap
+    # a removal as a security precaution.
+    rm -rf /dev/shm/pa &&
+        trap 'rm -rf /dev/shm/pa' EXIT
+
     # Dying on mkdir is a security precaution as well, since
     # mkdir will fail if the directory already exists (in which
-    # case, someone else may own it).
-    trap 'rm -rf /dev/shm/pa' EXIT
-    rm -rf /dev/shm/pa
-    mkdir "$tmpdir" || die "Failed to create tmpdir, check perms on $tmpdir"
+    # case, someone malicious may own it).
+    mkdir "$tmpdir" ||
+        die "Failed to create tmpdir, check perms on $tmpdir"
 
     age -i "$identities_file" --decrypt "$name.age" 2>/dev/null >"$tmpfile" ||
         die "Could not decrypt $name.age"
 
     "${EDITOR:-vi}" "$tmpfile"
 
-    [ -f "$tmpfile" ] || die "New password not saved"
+    [ -f "$tmpfile" ] ||
+        die "New password not saved"
 
     rm "$name.age"
     age -R "$recipients_file" -o "$name.age" "$tmpfile"
