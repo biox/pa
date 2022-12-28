@@ -8,8 +8,8 @@
 #  - bemenu
 #  - pa
 
-cd "${PA_DIR:-$HOME/.local/share/pa}"
+cd "${PA_DIR:-$HOME/.local/share/pa/passwords}"
 password_files="$(find * -type f | grep -v '/.git')"
-password=$(printf '%s\n' "$password_files" | sed 's/.age//' | bemenu -b "$@")
+password=$(printf '%s\n' "$password_files" | sed 's/.age//' | bemenu -c -W 0.2 -l 20 "$@")
 
 pa show "$password" | head -n 1 | tr -d '\n' | wtype -

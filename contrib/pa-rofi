@@ -1,6 +1,6 @@
 #!/bin/sh
 
-cd "${PA_DIR:-$HOME/.local/share/pa}"
+cd "${PA_DIR:-$HOME/.local/share/pa/passwords}"
 password_files="$(find * -type f | grep -v '/.git')"
 password=$(printf '%s\n' "$password_files" | sed 's/.age//' | rofi -dmenu -i "$@")
 
