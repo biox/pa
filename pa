@@ -99,8 +99,10 @@ pw_list() {
 }
 
 dep() {
-    command -v "$1" >/dev/null 2>&1 ||
-        die "$1 not found, install per https://github.com/FiloSottile/age"
+    for dep in $@; do
+        command -v "$dep" >/dev/null 2>&1 ||
+            die "$dep not found, install per https://github.com/FiloSottile/age"
+    done
 }
 
 yn() {
@@ -180,12 +182,14 @@ main() {
     : "${PA_DIR:=${XDG_DATA_HOME:=$HOME/.local/share}/pa}"
 
     password_dir="$PA_DIR/passwords"
+    identities_file="$PA_DIR/identities"
+    recipients_file="$PA_DIR/recipients"
 
     mkdir -p "$password_dir" ||
-        die "Couldn't create password store"
+        die "Couldn't create directory $password_dir"
 
     cd "$password_dir" ||
-        die "Can't access the password store"
+        die "Couldn't change to directory $password_dir"
 
     # Move any passwords hanging out in the old dir
     # for backwards-compat reasons
@@ -193,8 +197,8 @@ main() {
     mv ~/.local/share/pa/*.age "$password_dir" 2>/dev/null
     set -f
 
-    glob "$1" '[aes]' &&
-        depends age
+    glob "$1" '[aes]*' &&
+        dep age age-keygen
 
     glob "$1" '[ades]*' && [ -z "$2" ] &&
         die "Missing [name] argument"
@@ -218,17 +222,15 @@ main() {
     # only the current user.
     umask 077
 
-    identities_file="$PA_DIR/identities"
     # Copy any existing identities files from the old
-    # storage location to the new one - backwards compat.
-    [ ! -f "$identities_file" ] && [ -f ~/.age/key.txt ] &&
-        cp ~/.age/key.txt "$identities_file"
+    # storage location to the new one for backwards compat.
+    [ ! -f "$identities_file" ] &&
+        cp ~/.age/key.txt "$identities_file" 2>/dev/null
 
-    [ ! -f "$identities_file" ] && dep age-keygen &&
+    [ ! -f "$identities_file" ] &&
         age-keygen -o "$identities_file" 2>/dev/null
 
-    recipients_file="$PA_DIR/recipients"
-    [ ! -f "$recipients_file" ] && dep age-keygen &&
+    [ ! -f "$recipients_file" ] &&
         age-keygen -y -o "$recipients_file" "$identities_file" 2>/dev/null
 
     # Ensure that we leave the terminal in a usable
@@ -239,8 +241,8 @@ main() {
     a*) pw_add "$2" ;;
     d*) pw_del "$2" ;;
     e*) pw_edit "$2" ;;
-    s*) pw_show "$2" ;;
     l*) pw_list ;;
+    s*) pw_show "$2" ;;
     *) usage ;;
     esac
 }
