@@ -29,25 +29,36 @@ A simple password manager using [age](https://github.com/FiloSottile/age) writte
 
 ## Usage
 
-Examples: `pa add web/gmail`, `pa list`, `pa del facebook`, `pa show github`, `pa edit sourcehut`.
+```
+  pa
+    a simple password manager based on age
+
+  commands:
+    [a]dd  [name] - Add a password entry.
+    [d]el  [name] - Delete a password entry.
+    [e]dit [name] - Edit a password entry with nvim.
+    [l]ist        - List all entries.
+    [s]how [name] - Show password for an entry.
+
+  env vars:
+    Password length:   export PA_LENGTH=50
+    Password pattern:  export PA_PATTERN=_A-Z-a-z-0-9
+    Password/key dir:  export PA_DIR=~/.local/share/pa
+```
+
+Examples:
 
 ```
-USAGE
-
-pa 0.1.1 - age-based password manager
-=> [a]dd  [name] - Create a new password, randomly generated
-=> [d]el  [name] - Delete a password entry.
-=> [e]dit [name] - Edit a password entry with vim.
-=> [l]ist        - List all entries.
-=> [s]how [name] - Show password for an entry.
-Password length:   export PA_LENGTH=50
-Password pattern:  export PA_PATTERN=_A-Z-a-z-0-9
-Store location:    export PA_DIR=~/.local/share/pa
+pa add web/gmail
+pa list | grep chan
+pa del facebook
+pa show github
+pa edit sourcehut
 ```
 
 ## FAQ
 
-### How does this differ from `pass` or etc?
+### How does this differ from `pass`, etc?
 
 I was looking for a shell-based password manager that used age. Actually, see my blog post if you're really that curious:
 

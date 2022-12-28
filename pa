@@ -158,17 +158,17 @@ die() {
 
 usage() {
     printf %s "\
-  pa 0.1.1
+  pa
     a simple password manager based on age
 
   commands:
-    [a]dd  [name] - Create a new password, randomly generated
+    [a]dd  [name] - Add a password entry.
     [d]el  [name] - Delete a password entry.
     [e]dit [name] - Edit a password entry with $EDITOR.
     [l]ist        - List all entries.
     [s]how [name] - Show password for an entry.
 
-  default env vars:
+  env vars:
     Password length:   export PA_LENGTH=50
     Password pattern:  export PA_PATTERN=_A-Z-a-z-0-9
     Password/key dir:  export PA_DIR=~/.local/share/pa
