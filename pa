@@ -173,27 +173,26 @@ usage() {
   env vars:
     Password length:   export PA_LENGTH=50
     Password pattern:  export PA_PATTERN=_A-Z-a-z-0-9
-    Password/key dir:  export PA_DIR=~/.local/share/pa
+    Password dir:      export PA_DIR=~/.local/share/pa/passwords
 "
     exit 0
 }
 
 main() {
-    : "${PA_DIR:=${XDG_DATA_HOME:=$HOME/.local/share}/pa}"
+    basedir="${XDG_DATA_HOME:=$HOME/.local/share}/pa"
+    : "${PA_DIR:=$basedir/passwords}"
+    identities_file="$basedir/identities"
+    recipients_file="$basedir/recipients"
 
-    password_dir="$PA_DIR/passwords"
-    identities_file="$PA_DIR/identities"
-    recipients_file="$PA_DIR/recipients"
+    mkdir -p "$basedir" "$PA_DIR" ||
+        die "Couldn't create pa directories"
 
-    mkdir -p "$password_dir" ||
-        die "Couldn't create directory $password_dir"
-
-    cd "$password_dir" ||
-        die "Couldn't change to directory $password_dir"
+    cd "$PA_DIR" ||
+        die "Couldn't change to password directory"
 
     # Move any passwords hanging out in the old dir
     # for backwards-compat reasons
-    mv ~/.local/share/pa/*.age "$password_dir" 2>/dev/null
+    mv "$basedir/*.age" "$PA_DIR" 2>/dev/null
 
     # Ensure that globbing is disabled
     # to avoid insecurities with word-splitting.

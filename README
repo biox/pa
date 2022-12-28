@@ -31,7 +31,7 @@
     env vars:
       Password length:   export PA_LENGTH=50
       Password pattern:  export PA_PATTERN=_A-Z-a-z-0-9
-      Password/key dir:  export PA_DIR=~/.local/share/pa
+      Password/key dir:  export PA_DIR=~/.local/share/pa/passwords
 
 
   command examples
@@ -64,12 +64,14 @@
 
     > where are my keys?
 
-      secret: ~/.local/share/pa/identities
-      public: ~/.local/share/pa/recipients
+      probably in the default locations:
+        secret: ~/.local/share/pa/identities
+        public: ~/.local/share/pa/recipients
 
     > where are my passwords?
 
-      probably ~/.local/share/pa/passwords
+      again, probably the default dir:
+        ~/.local/share/pa/passwords
 
     > how can i rename a password?
 
