@@ -34,7 +34,7 @@ Examples: `pa add web/gmail`, `pa list`, `pa del facebook`, `pa show github`, `p
 ```
 USAGE
 
-pa 0.1.0 - age-based password manager
+pa 0.1.1 - age-based password manager
 => [a]dd  [name] - Create a new password, randomly generated
 => [d]el  [name] - Delete a password entry.
 => [e]dit [name] - Edit a password entry with vim.
@@ -83,7 +83,7 @@ A shell function can be used to add new commands and functionality to `pa`. The 
 pa() {
     case $1 in
         g*)
-            cd "${PA_DIR:=${XDG_DATA_HOME:=$HOME/.local/share}/pa}"
+            cd "${PA_DIR:=${XDG_DATA_HOME:=$HOME/.local/share}/pa/passwords}"
             shift
             git "$@"
         ;;
