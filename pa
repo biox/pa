@@ -70,14 +70,20 @@ pw_edit() {
     # We want to clear the way for mkdir if we run
     # into unexpected state, and we also want to trap
     # a removal as a security precaution.
-    rm -rf /dev/shm/pa &&
-        trap 'rm -rf /dev/shm/pa' EXIT
+    rm -rf /dev/shm/pa ||
+        die "Failed to remove shared memory dir"
 
-    # Dying on mkdir is a security precaution as well, since
-    # mkdir will fail if the directory already exists (in which
-    # case, someone malicious may own it).
-    mkdir "$tmpdir" ||
-        die "Failed to create tmpdir, check perms on $tmpdir"
+    trap 'rm -rf /dev/shm/pa' EXIT
+
+    # We make this toplevel dir first as a security
+    # precaution - maintaining ownership of this dir
+    # guarantees that other users cannot muck with
+    # the contents within.
+    mkdir '/dev/shm/pa' ||
+        die "Failed to create shared memory dir"
+
+    mkdir -p "$tmpdir" ||
+        die "Failed to create shared memory dir"
 
     age -i "$identities_file" --decrypt "$name.age" 2>/dev/null >"$tmpfile" ||
         die "Could not decrypt $name.age"
