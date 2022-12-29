@@ -212,7 +212,7 @@ main() {
         die "age not found, install per https://github.com/FiloSottile/age"
 
     command -v age-keygen >/dev/null 2>&1 ||
-        die "age not found, install per https://github.com/FiloSottile/age"
+        die "age-keygen not found, install per https://github.com/FiloSottile/age"
 
     glob "$1" '[ades]*' && [ -z "$2" ] &&
         die "Missing [name] argument"
