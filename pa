@@ -6,7 +6,7 @@ pw_add() {
     name=$1
 
     if yn "Generate a password?"; then
-        pass=$(rand_chars "${PA_LENGTH:-50}")
+        pass=$(rand_chars "${PA_LENGTH:-50}" "${PA_PATTERN:-_A-Z-a-z-0-9}")
     else
         # 'sread()' is a simple wrapper function around 'read'
         # to prevent user input from being printed to the terminal.
@@ -52,7 +52,7 @@ pw_edit() {
 
     # Reimplement mktemp here, because
     # mktemp isn't defined in POSIX
-    tmpdir="/dev/shm/pa.$(rand_chars 8)"
+    tmpdir="/dev/shm/pa.$(rand_chars 8 '[:alnum:]')"
 
     tmpfile="$tmpdir/$name.age"
 
@@ -106,10 +106,11 @@ rand_chars() {
     # Regarding usage of '/dev/urandom' instead of '/dev/random'.
     # See: https://www.2uo.de/myths-about-urandom
     #
-    # arg = number of chars to receive
+    # $1 = number of chars to receive
+    # $2 = filter for the chars
     #
     # TODO: add more safety/compat here in case /dev/urandom doesn't exist
-    LC_ALL=C tr -dc "${PA_PATTERN:-_A-Z-a-z-0-9}" </dev/urandom |
+    LC_ALL=C tr -dc "$2" </dev/urandom |
             dd ibs=1 obs=1 count="$1" 2>/dev/null
 }
 
