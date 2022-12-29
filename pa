@@ -44,10 +44,9 @@ pw_edit() {
     [ -f "$name.age" ] ||
         die "Failed to access $name"
 
-    # we use /dev/shm because it's an in-memory
-    # space that we can use to store private data,
-    # and securely wipe it without worrying about
-    # residual badness
+    # Use /dev/shm because it's an in-memory
+    # space that we can use to store private data
+    # & securely wipe it
     [ -d /dev/shm ] ||
         die "Failed to access /dev/shm"
 
@@ -224,10 +223,10 @@ main() {
         die "Missing [name] argument"
 
     glob "$1" '[des]*' && [ ! -f "$2.age" ] &&
-        die "Pass file '$2' doesn't exist"
+        die "Password '$2' doesn't exist"
 
     glob "$1" 'a*' && [ -f "$2.age" ] &&
-        die "Pass file '$2' already exists"
+        die "Password '$2' already exists"
 
     glob "$2" '*/*' && glob "$2" '*../*' &&
         die "Category went out of bounds"
