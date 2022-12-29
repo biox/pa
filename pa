@@ -6,18 +6,7 @@ pw_add() {
     name=$1
 
     if yn "Generate a password?"; then
-        # Generate a password by reading '/dev/urandom' with the
-        # 'tr' command to translate the random bytes into a
-        # configurable character set.
-        #
-        # The 'dd' command is then used to read only the desired
-        # password length.
-        #
-        # Regarding usage of '/dev/urandom' instead of '/dev/random'.
-        # See: https://www.2uo.de/myths-about-urandom
-        pass=$(LC_ALL=C tr -dc "${PA_PATTERN:-_A-Z-a-z-0-9}" </dev/urandom |
-            dd ibs=1 obs=1 count="${PA_LENGTH:-50}" 2>/dev/null)
-
+        pass=$(rand_chars "${PA_LENGTH:-50}")
     else
         # 'sread()' is a simple wrapper function around 'read'
         # to prevent user input from being printed to the terminal.
@@ -62,16 +51,9 @@ pw_edit() {
     [ -d /dev/shm ] ||
         die "Failed to access /dev/shm"
 
-    # get base dirname in case we're dealing with
-    # a nested item (foo/bar)
-    tmpfile="/dev/shm/pa/$name.txt"
-    tmpdir="$(dirname "$tmpfile")"
-
-    # We want to clear the way for mkdir if we run
-    # into unexpected state, and we also want to trap
-    # a removal as a security precaution.
-    rm -rf /dev/shm/pa ||
-        die "Failed to remove shared memory dir"
+    # Reimplement mktemp here, because
+    # mktemp isn't defined in POSIX
+    tmpdir="/dev/shm/pa.$(rand_chars 8)"
 
     trap 'rm -rf /dev/shm/pa' EXIT
 
@@ -115,6 +97,24 @@ pw_show() {
 
 pw_list() {
     find . -type f -name \*.age | sed 's/..//;s/\.age$//'
+}
+
+rand_chars() {
+    # Generate random characters by reading '/dev/urandom' with the
+    # 'tr' command to translate the random bytes into a
+    # configurable character set.
+    #
+    # The 'dd' command is then used to read only the desired
+    # password length, since head -c isn't POSIX compliant.
+    #
+    # Regarding usage of '/dev/urandom' instead of '/dev/random'.
+    # See: https://www.2uo.de/myths-about-urandom
+    #
+    # arg = number of chars to receive
+    #
+    # TODO: add more safety/compat here in case /dev/urandom doesn't exist
+    LC_ALL=C tr -dc "${PA_PATTERN:-_A-Z-a-z-0-9}" </dev/urandom |
+            dd ibs=1 obs=1 count="$1" 2>/dev/null
 }
 
 dep() {
