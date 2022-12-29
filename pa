@@ -211,7 +211,7 @@ main() {
 
     # Move any passwords hanging out in the old dir
     # for backwards-compat reasons
-    mv "$basedir/*.age" "$PA_DIR" 2>/dev/null
+    mv $basedir/*.age "$PA_DIR" 2>/dev/null
 
     # Ensure that globbing is disabled
     # to avoid insecurities with word-splitting.
