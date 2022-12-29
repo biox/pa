@@ -54,17 +54,15 @@ pw_edit() {
     # mktemp isn't defined in POSIX
     tmpdir="/dev/shm/pa.$(rand_chars 8)"
 
-    trap 'rm -rf /dev/shm/pa' EXIT
+    tmpfile="$tmpdir/$name.age"
 
-    # We make this toplevel dir first as a security
-    # precaution - maintaining ownership of this dir
-    # guarantees that other users cannot muck with
-    # the contents within.
-    mkdir '/dev/shm/pa' ||
+    mkdir "$tmpdir" ||
         die "Failed to create shared memory dir"
 
-    mkdir -p "$tmpdir" ||
-        die "Failed to create shared memory dir"
+    trap "rm -rf $tmpdir" EXIT
+
+    # Handle nested items (/foo/bar.age)
+    mkdir -p "$(dirname $tmpfile)"
 
     age -i "$identities_file" --decrypt "$name.age" 2>/dev/null >"$tmpfile" ||
         die "Could not decrypt $name.age"
@@ -74,8 +72,7 @@ pw_edit() {
     [ -f "$tmpfile" ] ||
         die "New password not saved"
 
-    rm "$name.age"
-    age -R "$recipients_file" -o "$name.age" "$tmpfile"
+    cat "$tmpfile" | age -R "$recipients_file" > "$name.age"
 }
 
 pw_del() {
