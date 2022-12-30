@@ -112,7 +112,7 @@ rand_chars() {
     #
     # TODO: add more safety/compat here in case /dev/urandom doesn't exist
     LC_ALL=C tr -dc "$2" </dev/urandom |
-            dd ibs=1 obs=1 count="$1" 2>/dev/null
+        dd ibs=1 obs=1 count="$1" 2>/dev/null
 }
 
 yn() {
