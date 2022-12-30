@@ -59,10 +59,10 @@ pw_edit() {
     mkdir "$tmpdir" ||
         die "Couldn't create shared memory dir"
 
-    trap "rm -rf $tmpdir" EXIT
+    trap 'rm -rf $tmpdir' EXIT
 
     # Handle nested items (/foo/bar.age)
-    mkdir -p "$(dirname $tmpfile)"
+    mkdir -p "$(dirname "$tmpfile")"
 
     age --decrypt -i "$identities_file" -o "$tmpfile" "$name.age" ||
         die "Couldn't decrypt $name.age"
@@ -202,7 +202,7 @@ main() {
 
     # Move any passwords hanging out in the old dir
     # for backwards-compat reasons
-    mv $basedir/*.age "$PA_DIR" 2>/dev/null
+    mv "$basedir"/*.age "$PA_DIR" 2>/dev/null
 
     # Ensure that globbing is disabled
     # to avoid insecurities with word-splitting.
