@@ -47,12 +47,12 @@ pw_edit() {
     # Prefer /dev/shm because it's an in-memory
     # space that we can use to store data without
     # having bits laying around in sectors.
-    tmpdir='/dev/shm'
+    tmpdir=/dev/shm
     # Fall back to /tmp - /dev/shm is Linux-only & /tmp
     # and shared memory space on other operating systems
     # have non-standard methods of setup/access.
-    [ -w "/dev/shm" ] ||
-        tmpdir='/tmp'
+    [ -w /dev/shm ] ||
+        tmpdir=/tmp
 
     # Reimplement mktemp here, because
     # mktemp isn't defined in POSIX
