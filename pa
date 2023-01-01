@@ -44,22 +44,26 @@ pw_edit() {
     [ -f "$name.age" ] ||
         die "Couldn't access $name"
 
-    # Use /dev/shm because it's an in-memory
-    # space that we can use to store private data
-    # & securely wipe it
-    [ -d /dev/shm ] ||
-        die "Couldn't access /dev/shm"
+    # Prefer /dev/shm because it's an in-memory
+    # space that we can use to store data without
+    # having bits laying around in sectors.
+    tmpdir='/dev/shm'
+    # Fall back to /tmp - /dev/shm is Linux-only & /tmp
+    # and shared memory space on other operating systems
+    # have non-standard methods of setup/access.
+    [ -w "/dev/shm" ] ||
+        tmpdir='/tmp'
 
     # Reimplement mktemp here, because
     # mktemp isn't defined in POSIX
-    tmpdir="/dev/shm/pa.$(rand_chars 8 '[:alnum:]')"
+    editdir="$tmpdir/pa.$(rand_chars 8 '[:alnum:]')"
 
-    tmpfile="$tmpdir/$name.age"
+    tmpfile="$editdir/$name.age"
 
-    mkdir "$tmpdir" ||
+    mkdir "$editdir" ||
         die "Couldn't create shared memory dir"
 
-    trap 'rm -rf $tmpdir' EXIT
+    trap 'rm -rf $editdir' EXIT
 
     # Handle nested items (/foo/bar.age)
     mkdir -p "$(dirname "$tmpfile")"
@@ -68,9 +72,6 @@ pw_edit() {
         die "Couldn't decrypt $name.age"
 
     "${EDITOR:-vi}" "$tmpfile"
-
-    [ -f "$tmpfile" ] ||
-        die "New password not saved"
 
     age --encrypt -R "$recipients_file" -o "$name.age" "$tmpfile" ||
         die "Couldn't encrypt $name.age"
