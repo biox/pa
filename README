@@ -17,7 +17,6 @@
 
 
   usage
-    $ pa help
     pa
       a simple password manager based on age
 
@@ -60,33 +59,42 @@
       more than ever, hour after hour
       work is never over
 
+    > is pa secure?
+
+      if you would like to understand the
+      security characteristics of pa, please
+      read my blog post[2], and my explanation[3].
+
     > why u make this?
 
-      if you're curious, i wrote a whole blog post about my reasons[2]
+      see [2].
 
     > where are my keys?
 
-      probably in the default locations:
-        secret: ~/.local/share/pa/identities
-        public: ~/.local/share/pa/recipients
+      probably the default locations:
+        ~/.local/share/pa/identities
+        ~/.local/share/pa/recipients
 
     > where are my passwords?
 
       probably the default location:
         ~/.local/share/pa/passwords
 
-    > how can i rename a password?
+    > how do i rename a password?
 
       cd ~/.local/share/pa/passwords
       mv foo.age bar.age
 
 
   credits
-    - pa was originally forked from pash[3] by dylanaraps[4]
-    - age is a project by Filippo Valsorda[5]
+    - pa was originally forked from pash[4] by dylanaraps[5]
+    - age[1] is a project by Filippo Valsorda[6]
 
-[1]: https://github.com/FiloSottile/age
-[2]: https://j3s.sh/thought/storing-passwords-with-age.html
-[3]: https://github.com/dylanaraps/pash
-[4]: https://github.com/dylanaraps
-[5]: https://filippo.io
+
+  refs
+    [1]: https://github.com/FiloSottile/age
+    [2]: https://j3s.sh/thought/storing-passwords-with-age.html
+    [3]: https://github.com/biox/pa/issues/10#issuecomment-1369225383
+    [4]: https://github.com/dylanaraps/pash
+    [5]: https://github.com/dylanaraps
+    [6]: https://filippo.io
