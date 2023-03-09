@@ -63,7 +63,7 @@ pw_edit() {
     mkdir "$editdir" ||
         die "Couldn't create shared memory dir"
 
-    trap 'rm -rf $editdir' EXIT
+    trap 'rm -rf "$editdir"' EXIT
 
     # Handle nested items (/foo/bar.age)
     mkdir -p "$(dirname "$tmpfile")"
