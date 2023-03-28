@@ -39,6 +39,10 @@ pw_add() {
         printf '%s\n' "Saved '$name' to the store."
 }
 
+pw_gen() {
+    pw_add "$1" "$(rand_chars "${PA_LENGTH:-50}" "${PA_PATTERN:-_A-Z-a-z-0-9}")"
+}
+
 pw_edit() {
     name=$1
 
@@ -180,11 +184,12 @@ usage() {
     a simple password manager based on age
 
   commands:
-    [a]dd  [name] - Add a password entry.
-    [d]el  [name] - Delete a password entry.
-    [e]dit [name] - Edit a password entry with $EDITOR.
-    [l]ist        - List all entries.
-    [s]how [name] - Show password for an entry.
+    [a]dd  [name] pass - Add a password entry.
+    [g]en  [name]      - Add a generated password entry.
+    [d]el  [name]      - Delete a password entry.
+    [e]dit [name] pass - Edit a password entry with $EDITOR.
+    [l]ist             - List all entries.
+    [s]how [name]      - Show password for an entry.
 
   env vars:
     Password length:   export PA_LENGTH=50
@@ -220,7 +225,7 @@ main() {
     command -v age-keygen >/dev/null 2>&1 ||
         die "age-keygen not found, install per https://github.com/FiloSottile/age"
 
-    glob "$1" '[ades]*' && [ -z "$2" ] &&
+    glob "$1" '[agdes]*' && [ -z "$2" ] &&
         die "Missing [name] argument"
 
     glob "$1" '[des]*' && [ ! -f "$2.age" ] &&
@@ -258,6 +263,7 @@ main() {
 
     case $1 in
     a*) pw_add "$2" "$3" ;;
+    g*) pw_gen "$2" ;;
     d*) pw_del "$2" ;;
     e*) pw_edit "$2" "$3" ;;
     l*) pw_list ;;

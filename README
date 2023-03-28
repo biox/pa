@@ -21,11 +21,12 @@
       a simple password manager based on age
 
     commands:
-      [a]dd  [name] - Add a password entry.
-      [d]el  [name] - Delete a password entry.
-      [e]dit [name] - Edit a password entry with nvim.
-      [l]ist        - List all entries.
-      [s]how [name] - Show password for an entry.
+      [a]dd  [name] pass - Add a password entry.
+      [g]en  [name]      - Add a generated password entry.
+      [d]el  [name]      - Delete a password entry.
+      [e]dit [name] pass - Edit a password entry with $EDITOR.
+      [l]ist             - List all entries.
+      [s]how [name]      - Show password for an entry.
 
     env vars:
       Password length:   export PA_LENGTH=50
