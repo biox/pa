@@ -40,6 +40,7 @@ pw_add() {
 
 pw_edit() {
     name=$1
+    edit=$2
 
     [ -f "$name.age" ] ||
         die "Couldn't access $name"
@@ -71,7 +72,8 @@ pw_edit() {
     age --decrypt -i "$identities_file" -o "$tmpfile" "$name.age" ||
         die "Couldn't decrypt $name.age"
 
-    "${EDITOR:-vi}" "$tmpfile"
+    [ $edit = false ] ||
+        "${EDITOR:-vi}" "$tmpfile"
 
     age --encrypt -R "$recipients_file" -o "$name.age" "$tmpfile" ||
         die "Couldn't encrypt $name.age"
@@ -95,6 +97,12 @@ pw_show() {
 
 pw_list() {
     find . -type f -name \*.age | sed 's/..//;s/\.age$//'
+}
+
+pw_rekey() {
+    pw_list | while read -r passfile; do
+	pw_edit $passfile false
+    done
 }
 
 rand_chars() {
@@ -254,8 +262,9 @@ main() {
     case $1 in
     a*) pw_add "$2" ;;
     d*) pw_del "$2" ;;
-    e*) pw_edit "$2" ;;
+    e*) pw_edit "$2" true ;;
     l*) pw_list ;;
+    r*) pw_rekey ;;
     s*) pw_show "$2" ;;
     *) usage ;;
     esac
