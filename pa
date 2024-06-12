@@ -28,10 +28,13 @@ pw_add() {
     # Heredocs are sometimes implemented via temporary files,
     # however this is typically done using 'mkstemp()' which
     # is more secure than a leak in '/proc'.
-    age --encrypt -R "$recipients_file" -o "$name.age" <<-EOF &&
+    age --encrypt -R "$recipients_file" -o "$name.age" <<-EOF ||
 		$pass
 	EOF
-        printf '%s\n' "Saved '$name' to the store."
+        die "Couldn't encrypt $name.age"
+
+    git_add_and_commit "$name.age" "add '$name'"
+    printf '%s\n' "Saved '$name' to the store."
 }
 
 pw_edit() {
@@ -71,6 +74,8 @@ pw_edit() {
 
     age --encrypt -R "$recipients_file" -o "$name.age" "$tmpfile" ||
         die "Couldn't encrypt $name.age"
+
+    git_add_and_commit "$name.age" "edit '$name'"
 }
 
 pw_del() {
@@ -81,6 +86,8 @@ pw_del() {
         # entry. It's fine if this fails as it means that
         # another entry also lives in the same directory.
         rmdir -p "./${1%/*}" 2>/dev/null || :
+
+        git_add_and_commit "$1.age" "delete '$1'"
     }
 }
 
@@ -91,6 +98,10 @@ pw_show() {
 
 pw_list() {
     find . -type f -name \*.age | sed 's/..//;s/\.age$//' | sort
+}
+
+git_add_and_commit() {
+    if $git_enabled; then git add "$1" && git commit -qm "$2"; fi
 }
 
 rand_chars() {
@@ -181,6 +192,7 @@ usage() {
     Password length:   export PA_LENGTH=50
     Password pattern:  export PA_PATTERN=_A-Z-a-z-0-9
     Password dir:      export PA_DIR=~/.local/share/pa/passwords
+    Disable tracking:  export PA_NOGIT=
 "
     exit 0
 }
@@ -204,6 +216,31 @@ main() {
     # Ensure that globbing is disabled
     # to avoid insecurities with word-splitting.
     set -f
+
+    if [ -z "${PA_NOGIT+x}" ] && command -v git >/dev/null 2>&1; then
+        git_enabled=true
+    else
+        git_enabled=false
+    fi
+
+    $git_enabled && [ ! -d .git ] && {
+        git init
+
+        # Put something in user config if it's not set globally,
+        # because git doesn't allow to commit without it.
+        git config user.name >/dev/null || git config user.name pa
+        git config user.email >/dev/null || git config user.email ""
+
+        # Configure diff driver for age encrypted files that treats them as
+        # binary and decrypts them when a human-readable diff is requested.
+        git config diff.age.binary true
+        git config diff.age.textconv "age --decrypt -i \"$identities_file\""
+
+        # Assign this diff driver to all passwords.
+        printf '%s\n' '*.age diff=age' >.gitattributes
+
+        git_add_and_commit . "initial commit"
+    }
 
     command -v age >/dev/null 2>&1 ||
         die "age not found, install per https://github.com/FiloSottile/age"
