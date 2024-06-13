@@ -50,9 +50,6 @@ pw_add() {
 pw_edit() {
     name=$1
 
-    [ -f "$name.age" ] ||
-        die "Couldn't access $name"
-
     # Prefer /dev/shm because it's an in-memory
     # space that we can use to store data without
     # having bits laying around in sectors.
@@ -74,15 +71,21 @@ pw_edit() {
 
     trap 'rm -rf "$editdir"' EXIT
 
-    age --decrypt -i "$identities_file" -o "$tmpfile" "./$name.age" ||
-        die "Couldn't decrypt $name.age"
+    if [ ! -f "$name.age" ]; then new=true; else new=false && {
+        age --decrypt -i "$identities_file" -o "$tmpfile" "./$name.age" ||
+            die "Couldn't decrypt $name.age"
+    }; fi
 
     "${EDITOR:-vi}" "$tmpfile"
 
-    age --encrypt -R "$recipients_file" -o "./$name.age" "$tmpfile" ||
-        die "Couldn't encrypt $name.age"
+    [ -f "$tmpfile" ] && {
+        age --encrypt -R "$recipients_file" -o "./$name.age" "$tmpfile" ||
+            die "Couldn't encrypt $name.age"
 
-    git_add_and_commit "./$name.age" "edit '$name'"
+        git_add_and_commit "./$name.age" "edit '$name'"
+
+        if $new; then printf '%s\n' "Saved '$name' to the store."; fi
+    }
 }
 
 pw_del() {
@@ -254,7 +257,7 @@ main() {
     glob "$1" '[ades]*' && [ -z "$2" ] &&
         die "Missing [name] argument"
 
-    glob "$1" '[des]*' && [ ! -f "$2.age" ] &&
+    glob "$1" '[ds]*' && [ ! -f "$2.age" ] &&
         die "Password '$2' doesn't exist"
 
     glob "$1" 'a*' && [ -f "$2.age" ] &&
