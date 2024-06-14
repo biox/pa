@@ -1,98 +1,20 @@
 #!/bin/sh
 #
-# pa-pass - a simple tool to migrate passwords from pass to pa
+# migrate passwords from pass to pa
+#
+# Password dir of pass: export PASSWORD_STORE_DIR=~/.password-store
+# Password dir of pa:   export PA_DIR=~/.local/share/pa/passwords
 
-pw_migrate() {
-    find $1 -name '*.gpg' | while read -r passfile; do
-        local agefile=$(echo "$passfile" | awk -F"$1" '{print $2}' | sed 's/gpg/age/')
-	local agefolder=$(dirname $agefile)
-	mkdir -p $PA_DIR$agefolder
-	gpg2 -d $passfile | age --encrypt -R "$recipients_file" -o "$PA_DIR$agefile"
-	printf '%s\n' "Saved '$agefile' to the store."
-    done	
-}
+: "${PASSWORD_STORE_DIR:=$HOME/.password-store}"
+basedir="${XDG_DATA_HOME:=$HOME/.local/share}/pa"
+: "${PA_DIR:=$basedir/passwords}"
 
+# Create pa store if it doesn't exist.
+pa list >/dev/null
 
-glob() {
-    # This is a simple wrapper around a case statement to allow
-    # for simple string comparisons against globs.
-    #
-    # Example: if glob "Hello World" '* World'; then
-    #
-    # Disable this warning as it is the intended behavior.
-    # shellcheck disable=2254
-    case $1 in $2) return 0 ;; esac
-    return 1
-}
-
-die() {
-    printf 'error: %s.\n' "$1" >&2
-    exit 1
-}
-
-usage() {
-    printf %s "\
-  pa-pass
-    a simple tool to migrate passwords from pass to pa
-
-  commands:
-    [m]igrate  [PASSWORD_STORE_DIR] - Migrate all passwords from PASSWORD_STORE_DIR to $PA_DIR.
-
-  env vars:
-    Password dir:      export PA_DIR=~/.local/share/pa/passwords
-"
-    exit 0
-}
-
-main() {
-    basedir="${XDG_DATA_HOME:=$HOME/.local/share}/pa"
-    : "${PA_DIR:=$basedir/passwords}"
-    identities_file="$basedir/identities"
-    recipients_file="$basedir/recipients"
-
-    mkdir -p "$basedir" "$PA_DIR" ||
-        die "Couldn't create pa directories"
-
-    # Ensure that globbing is disabled
-    # to avoid insecurities with word-splitting.
-    set -f
-
-    command -v age >/dev/null 2>&1 ||
-        die "age not found, install per https://github.com/FiloSottile/age"
-
-    command -v age-keygen >/dev/null 2>&1 ||
-        die "age-keygen not found, install per https://github.com/FiloSottile/age"
-
-    glob "$1" '[m]*' && [ -z "$2" ] &&
-	die "Missing [PASSWORD_STORE_DIR] argument"
-
-    # Restrict permissions of any new files to
-    # only the current user.
-    umask 077
-
-    # First, copy any existing identities files from the old
-    # storage location to the new one for backwards compat.
-    # Then, attempt key generation.
-    [ -f "$identities_file" ] ||
-        cp ~/.age/key.txt "$identities_file" 2>/dev/null ||
-        age-keygen -o "$identities_file" 2>/dev/null
-
-    [ -f "$recipients_file" ] ||
-        age-keygen -y -o "$recipients_file" "$identities_file" 2>/dev/null
-
-    # Ensure that we leave the terminal in a usable
-    # state on exit or Ctrl+C.
-    [ -t 1 ] && trap 'stty echo icanon' INT EXIT
-
-    case $1 in
-    m*) pw_migrate "$2" ;;
-    *) usage ;;
-    esac
-}
-
-# Ensure that debug mode is never enabled to
-# prevent the password from leaking.
-set +x
-
-[ "$1" ] || usage && main "$@"
-
+find "$PASSWORD_STORE_DIR" -name '*.gpg' | while read -r passfile; do
+    name="$(printf '%s\n' "${passfile#"$PASSWORD_STORE_DIR/"}" | sed 's/\.gpg$//')"
+    mkdir -p "$PA_DIR/$(dirname "$name")"
+    gpg2 -d "$passfile" | age -R "$basedir/recipients" -o "$PA_DIR/$name.age"
+    printf '%s\n' "Saved '$name' to the store."
+done
