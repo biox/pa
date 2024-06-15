@@ -3,8 +3,6 @@
 # pa - a simple password manager
 
 pw_add() {
-    name=$1
-
     if yn "Generate a password?"; then
         pass=$(rand_chars "${PA_LENGTH:-50}" "${PA_PATTERN:-A-Za-z0-9-_}")
 
@@ -48,8 +46,6 @@ pw_add() {
 }
 
 pw_edit() {
-    name=$1
-
     # Prefer /dev/shm because it's an in-memory
     # space that we can use to store data without
     # having bits laying around in sectors.
@@ -89,21 +85,21 @@ pw_edit() {
 }
 
 pw_del() {
-    yn "Delete password '$1'?" && {
-        rm -f "./$1.age"
+    yn "Delete password '$name'?" && {
+        rm -f "./$name.age"
 
         # Remove empty parent directories of a password
         # entry. It's fine if this fails as it means that
         # another entry also lives in the same directory.
-        rmdir -p "$(dirname "./$1")" 2>/dev/null || :
+        rmdir -p "$(dirname "./$name")" 2>/dev/null || :
 
-        git_add_and_commit "./$1.age" "delete '$1'"
+        git_add_and_commit "./$name.age" "delete '$name'"
     }
 }
 
 pw_show() {
-    $age --decrypt -i "$identities_file" "./$1.age" ||
-        die "Couldn't decrypt $1.age"
+    $age --decrypt -i "$identities_file" "./$name.age" ||
+        die "Couldn't decrypt $name.age"
 }
 
 pw_list() {
@@ -213,6 +209,10 @@ main() {
     age_keygen=$(command -v age-keygen || command -v rage-keygen) ||
         die "age-keygen not found, install per https://age-encryption.org"
 
+    command=$1
+    shift
+    name="$*"
+
     basedir="${XDG_DATA_HOME:=$HOME/.local/share}/pa"
     : "${PA_DIR:=$basedir/passwords}"
     identities_file="$basedir/identities"
@@ -254,19 +254,19 @@ main() {
         git_add_and_commit . "initial commit"
     }
 
-    glob "$1" '[ades]*' && [ -z "$2" ] &&
+    glob "$command" '[ades]*' && [ -z "$name" ] &&
         die "Missing [name] argument"
 
-    glob "$1" '[ds]*' && [ ! -f "$2.age" ] &&
-        die "Password '$2' doesn't exist"
+    glob "$command" '[ds]*' && [ ! -f "$name.age" ] &&
+        die "Password '$name' doesn't exist"
 
-    glob "$1" 'a*' && [ -f "$2.age" ] &&
-        die "Password '$2' already exists"
+    glob "$command" 'a*' && [ -f "$name.age" ] &&
+        die "Password '$name' already exists"
 
-    glob "$2" '/*' || glob "$2" '*/' &&
+    glob "$name" '/*' || glob "$name" '*/' &&
         die "Name can't start or end with '/'"
 
-    glob "$2" '../*' || glob "$2" '*/../*' &&
+    glob "$name" '../*' || glob "$name" '*/../*' &&
         die "Category went out of bounds"
 
     # First, copy any existing identities files from the old
@@ -282,12 +282,12 @@ main() {
     # Ensure that we leave the terminal in a usable state on Ctrl+C.
     [ -t 1 ] && trap 'stty echo icanon; trap - INT; kill -s INT 0' INT
 
-    case $1 in
-    a*) pw_add "$2" ;;
-    d*) pw_del "$2" ;;
-    e*) pw_edit "$2" ;;
+    case $command in
+    a*) pw_add ;;
+    d*) pw_del ;;
+    e*) pw_edit ;;
     l*) pw_list ;;
-    s*) pw_show "$2" ;;
+    s*) pw_show ;;
     *) usage ;;
     esac
 }
