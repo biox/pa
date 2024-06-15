@@ -21,10 +21,6 @@ pw_add() {
 
     [ "$pass" ] || die "Couldn't generate a password"
 
-    # Mimic the use of an array for storing arguments by... using
-    # the function's argument list. This is very apt isn't it?
-    set -- -c
-
     # Use 'age' to store the password in an encrypted file.
     # A heredoc is used here instead of a 'printf' to avoid
     # leaking the password through the '/proc' filesystem.
