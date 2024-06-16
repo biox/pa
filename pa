@@ -90,7 +90,7 @@ pw_show() {
 }
 
 pw_list() {
-    find . -type f -name \*.age | sed 's/..//;s/\.age$//'
+    find . -type f -name \*.age | sed 's/..//;s/\.age$//' | sort
 }
 
 rand_chars() {
