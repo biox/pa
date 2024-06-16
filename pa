@@ -177,7 +177,7 @@ usage() {
   commands:
     [a]dd  [name] - Add a password entry.
     [d]el  [name] - Delete a password entry.
-    [e]dit [name] - Edit a password entry with $EDITOR.
+    [e]dit [name] - Edit a password entry with ${EDITOR:-vi}.
     [l]ist        - List all entries.
     [s]how [name] - Show password for an entry.
 

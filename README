@@ -23,14 +23,14 @@
     commands:
       [a]dd  [name] - Add a password entry.
       [d]el  [name] - Delete a password entry.
-      [e]dit [name] - Edit a password entry with nvim.
+      [e]dit [name] - Edit a password entry with vi.
       [l]ist        - List all entries.
       [s]how [name] - Show password for an entry.
 
     env vars:
       Password length:   export PA_LENGTH=50
       Password pattern:  export PA_PATTERN=_A-Z-a-z-0-9
-      Password/key dir:  export PA_DIR=~/.local/share/pa/passwords
+      Password dir:      export PA_DIR=~/.local/share/pa/passwords
 
 
   command examples
@@ -45,7 +45,7 @@
     vJwKuEBtxBVvdR-xppTdfofIei0oLlkoSK4OCSP2bMEBsP6ahM
 
     $ pa edit test
-    <opens $EDITOR>
+    <opens $EDITOR or vi>
 
     $ pa del test
     Delete pass file 'test'? [y/n]: y
