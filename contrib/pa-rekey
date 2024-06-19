@@ -3,7 +3,7 @@
 # rotate keys and reencrypt passwords
 #
 # Reuse identities file: export PA_IDENTITIES=~/.local/share/pa/identities
-# Reuse recipients file: export PA_IDENTITIES=~/.local/share/pa/recipients
+# Reuse recipients file: export PA_RECIPIENTS=~/.local/share/pa/recipients
 
 basedir="${XDG_DATA_HOME:=$HOME/.local/share}/pa"
 : "${PA_DIR:=$basedir/passwords}"
