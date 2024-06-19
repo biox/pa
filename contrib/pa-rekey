@@ -1,0 +1,26 @@
+#!/bin/sh
+#
+# rotate keys and reencrypt passwords
+#
+# Reuse identities file: export PA_IDENTITIES=~/.local/share/pa/identities
+# Reuse recipients file: export PA_IDENTITIES=~/.local/share/pa/recipients
+
+basedir="${XDG_DATA_HOME:=$HOME/.local/share}/pa"
+: "${PA_DIR:=$basedir/passwords}"
+
+# Restrict permissions of any new files to only the current user.
+umask 077
+
+[ "$PA_IDENTITIES" ] && cp "$PA_IDENTITIES" "$basedir/identities.tmp"
+[ "$PA_RECIPIENTS" ] && cp "$PA_RECIPIENTS" "$basedir/recipients.tmp"
+
+age-keygen >>"$basedir/identities.tmp" 2>/dev/null
+age-keygen -y "$basedir/identities.tmp" >>"$basedir/recipients.tmp" 2>/dev/null
+
+pa list | while read -r name; do
+    pa show "$name" | age -R "$basedir/recipients.tmp" -o "$PA_DIR/$name.tmp.age"
+    mv "$PA_DIR/$name.tmp.age" "$PA_DIR/$name.age"
+done
+
+mv "$basedir/identities.tmp" "$basedir/identities"
+mv "$basedir/recipients.tmp" "$basedir/recipients"
