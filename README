@@ -1,5 +1,5 @@
                    pa
-         a simple password manager
+        a simple password manager
 
   features
     - encryption implemented using age[1]
