@@ -47,8 +47,7 @@ pw_edit() {
     # Fall back to /tmp - /dev/shm is Linux-only & /tmp
     # and shared memory space on other operating systems
     # have non-standard methods of setup/access.
-    [ -w /dev/shm ] ||
-        tmpdir=/tmp
+    [ -w /dev/shm ] || tmpdir=/tmp
 
     # Reimplement mktemp here, because
     # mktemp isn't defined in POSIX
@@ -56,13 +55,11 @@ pw_edit() {
 
     tmpfile="$editdir/$name.age"
 
-    mkdir "$editdir" ||
+    # Handle nested items (/foo/bar.age)
+    mkdir -p "$(dirname "$tmpfile")" ||
         die "Couldn't create shared memory dir"
 
     trap 'rm -rf "$editdir"' EXIT
-
-    # Handle nested items (/foo/bar.age)
-    mkdir -p "$(dirname "$tmpfile")"
 
     age --decrypt -i "$identities_file" -o "$tmpfile" "$name.age" ||
         die "Couldn't decrypt $name.age"
@@ -108,8 +105,7 @@ rand_chars() {
     # $2 = filter for the chars
     #
     # TODO: add more safety/compat here in case /dev/urandom doesn't exist
-    LC_ALL=C tr -dc "$2" </dev/urandom |
-        dd ibs=1 obs=1 count="$1" 2>/dev/null
+    LC_ALL=C tr -dc "$2" </dev/urandom | dd ibs=1 obs=1 count="$1" 2>/dev/null
 }
 
 yn() {
