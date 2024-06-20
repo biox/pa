@@ -4,16 +4,18 @@
   features
     - encryption implemented using age[1]
     - automatic key generation
+    - automatic git tracking
     - multiple identity/recipient support
     - written in portable posix shell
     - simple to extend
-    - only ~130 lines of code
+    - only ~160 lines of code
     - pronounced "pah" - as in "papa"
 
 
   dependencies
     - age
     - age-keygen
+    - git (optional)
 
 
   usage
@@ -31,6 +33,7 @@
       Password length:   export PA_LENGTH=50
       Password pattern:  export PA_PATTERN=_A-Z-a-z-0-9
       Password dir:      export PA_DIR=~/.local/share/pa/passwords
+      Disable tracking:  export PA_NOGIT=
 
 
   command examples
