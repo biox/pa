@@ -105,9 +105,11 @@ git_add_and_commit() {
 }
 
 rand_chars() {
-    # Generate random characters by reading '/dev/urandom' with the
+    # Generate random characters by reading from CSPRNG with the
     # 'tr' command to translate the random bytes into a
     # configurable character set.
+    #
+    # Uses '/dev/urandom' if available and 'openssl rand' otherwise.
     #
     # The 'dd' command is then used to read only the desired
     # password length, since head -c isn't POSIX compliant.
@@ -117,9 +119,20 @@ rand_chars() {
     #
     # $1 = number of chars to receive
     # $2 = filter for the chars
-    #
-    # TODO: add more safety/compat here in case /dev/urandom doesn't exist
-    LC_ALL=C tr -dc "$2" </dev/urandom | dd ibs=1 obs=1 count="$1" 2>/dev/null
+    LC_ALL=C
+
+    if [ -r /dev/urandom ]; then
+        tr -dc "$2" </dev/urandom | dd ibs=1 obs=1 count="$1" 2>/dev/null
+    else
+        while [ "${#chars}" -lt "$1" ]; do
+                # 512 bytes should be enough to generate a password
+                # with the default length and pattern on first try.
+                chars="$chars$(openssl rand 512 | tr -dc "$2")"
+        done
+        dd ibs=1 obs=1 count="$1" 2>/dev/null <<-EOF
+			$chars
+		EOF
+    fi
 }
 
 yn() {
