@@ -281,9 +281,8 @@ main() {
     [ -f "$recipients_file" ] ||
         age-keygen -y -o "$recipients_file" "$identities_file" 2>/dev/null
 
-    # Ensure that we leave the terminal in a usable
-    # state on exit or Ctrl+C.
-    [ -t 1 ] && trap 'stty echo icanon; exit' INT EXIT
+    # Ensure that we leave the terminal in a usable state on Ctrl+C.
+    [ -t 1 ] && trap 'stty echo icanon; trap - INT; kill -s INT 0' INT
 
     case $1 in
     a*) pw_add "$2" ;;
