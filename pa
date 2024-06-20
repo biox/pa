@@ -7,10 +7,15 @@ pw_add() {
 
     if yn "Generate a password?"; then
         pass=$(rand_chars "${PA_LENGTH:-50}" "${PA_PATTERN:-_A-Z-a-z-0-9}")
+
+        [ "$pass" ] || die "Couldn't generate a password"
     else
         # 'sread()' is a simple wrapper function around 'read'
         # to prevent user input from being printed to the terminal.
         sread pass "Enter password"
+
+        [ "$pass" ] || die "Password can't be empty"
+
         sread pass2 "Enter password (again)"
 
         # Disable this check as we dynamically populate the two
@@ -18,8 +23,6 @@ pw_add() {
         # shellcheck disable=2154
         [ "$pass" = "$pass2" ] || die "Passwords do not match"
     fi
-
-    [ "$pass" ] || die "Couldn't generate a password"
 
     # Use 'age' to store the password in an encrypted file.
     # A heredoc is used here instead of a 'printf' to avoid
@@ -120,11 +123,11 @@ rand_chars() {
 }
 
 yn() {
-    printf '%s [y/n]: ' "$1"
+    printf '%s [y/N]: ' "$1"
 
     # Enable raw input to allow for a single byte to be read from
     # stdin without needing to wait for the user to press Return.
-    stty -icanon
+    stty -echo -icanon
 
     # Read a single byte from stdin using 'dd'. POSIX 'read' has
     # no support for single/'N' byte based input from the user.
@@ -132,7 +135,9 @@ yn() {
 
     # Disable raw input, leaving the terminal how we *should*
     # have found it.
-    stty icanon
+    stty echo icanon
+
+    [ "$answer" ] && printf '%s' "$answer"
 
     printf '\n'
 
@@ -278,7 +283,7 @@ main() {
 
     # Ensure that we leave the terminal in a usable
     # state on exit or Ctrl+C.
-    [ -t 1 ] && trap 'stty echo icanon' INT EXIT
+    [ -t 1 ] && trap 'stty echo icanon; exit' INT EXIT
 
     case $1 in
     a*) pw_add "$2" ;;

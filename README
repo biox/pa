@@ -38,7 +38,7 @@
 
   command examples
     $ pa add test
-    Generate a password? [y/n]: y
+    Generate a password? [y/N]: y
     Saved 'test' to the store.
 
     $ pa list
@@ -51,7 +51,7 @@
     <opens $EDITOR or vi>
 
     $ pa del test
-    Delete pass file 'test'? [y/n]: y
+    Delete pass file 'test'? [y/N]: y
 
 
   faq
