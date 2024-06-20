@@ -137,9 +137,7 @@ yn() {
     # have found it.
     stty echo icanon
 
-    [ "$answer" ] && printf '%s' "$answer"
-
-    printf '\n'
+    printf '%s\n' "$answer"
 
     # Handle the answer here directly, enabling this function's
     # return status to be used in place of checking for '[yY]'
