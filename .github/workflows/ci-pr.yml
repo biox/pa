@@ -1,0 +1,37 @@
+---
+name: ci-pr
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-pr-${{ github.event.number }}
+  cancel-in-progress: true
+
+jobs:
+  paths-check:
+    runs-on: ubuntu-latest
+    outputs:
+      shell-script-changes: ${{ steps.path-changes.outputs.shell-script-changes }}
+    steps:
+      - uses: actions/checkout@v4
+        if: ${{ !cancelled() }}
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: ./.github/actions/path-changes
+        if: ${{ !cancelled() }}
+        id: path-changes
+
+  sh-lint:
+    needs: paths-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    if: ${{ needs.paths-check.outputs.shell-script-changes == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+        if: ${{ !cancelled() }}
+      - uses: azohra/shell-linter@latest
+        if: ${{ !cancelled() }}
+        with:
+          exclude-paths: "contrib/*.fish"
