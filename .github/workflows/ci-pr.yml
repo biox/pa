@@ -35,4 +35,4 @@ jobs:
         if: ${{ !cancelled() }}
         with:
           path: "pa,contrib"
-          exclude-paths: "contrib/*.fish,contrib/*.bash"
+          exclude-paths: "contrib/*.*"
