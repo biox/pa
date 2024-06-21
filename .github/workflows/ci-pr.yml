@@ -34,5 +34,5 @@ jobs:
       - uses: azohra/shell-linter@latest
         if: ${{ !cancelled() }}
         with:
-          path: "pa,contrib/*"
+          path: "pa,contrib/"
           exclude-paths: "contrib/*.fish"
