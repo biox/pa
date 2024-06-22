@@ -317,6 +317,10 @@ main() {
 # prevent the password from leaking.
 set +x
 
+# Ensure that pipelines return status of the
+# last failed command.
+set -o pipefail
+
 # Restrict permissions of any new files to
 # only the current user.
 umask 077
