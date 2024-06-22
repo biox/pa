@@ -8,20 +8,23 @@ pw_add() {
     if yn "Generate a password?"; then
         pass=$(rand_chars "${PA_LENGTH:-50}" "${PA_PATTERN:-_A-Z-a-z-0-9}")
 
-        [ "$pass" ] || die "Couldn't generate a password"
+        [ "$pass" ] ||
+            die "Couldn't generate a password"
     else
         # 'sread()' is a simple wrapper function around 'read'
         # to prevent user input from being printed to the terminal.
         sread pass "Enter password"
 
-        [ "$pass" ] || die "Password can't be empty"
+        [ "$pass" ] ||
+            die "Password can't be empty"
 
         sread pass2 "Enter password (again)"
 
         # Disable this check as we dynamically populate the two
         # passwords using the 'sread()' function.
         # shellcheck disable=2154
-        [ "$pass" = "$pass2" ] || die "Passwords do not match"
+        [ "$pass" = "$pass2" ] ||
+            die "Passwords do not match"
     fi
 
     mkdir -p "$(dirname "./$name")" ||
@@ -40,6 +43,7 @@ pw_add() {
         die "Couldn't encrypt $name.age"
 
     git_add_and_commit "./$name.age" "add '$name'"
+
     printf '%s\n' "Saved '$name' to the store."
 }
 
@@ -225,11 +229,8 @@ main() {
     # to avoid insecurities with word-splitting.
     set -f
 
-    if [ -z "${PA_NOGIT+x}" ] && command -v git >/dev/null 2>&1; then
-        git_enabled=true
-    else
-        git_enabled=false
-    fi
+    git_enabled=false
+    [ -z "${PA_NOGIT+x}" ] && command -v git >/dev/null 2>&1 && git_enabled=true
 
     $git_enabled && [ ! -d .git ] && {
         git init
