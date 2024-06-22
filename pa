@@ -210,8 +210,12 @@ main() {
         die "age-keygen not found, install per https://age-encryption.org"
 
     command=$1
+
+    # Combine the rest of positional arguments into
+    # a name and remove control characters from it
+    # so that a name can always be safely displayed.
     shift
-    name="$*"
+    name=$(printf %s "$*" | LC_ALL=C tr -d '[:cntrl:]')
 
     basedir="${XDG_DATA_HOME:=$HOME/.local/share}/pa"
     : "${PA_DIR:=$basedir/passwords}"
