@@ -266,10 +266,6 @@ main() {
     glob "$2" '../*' || glob "$2" '*/../*' &&
         die "Category went out of bounds"
 
-    # Restrict permissions of any new files to
-    # only the current user.
-    umask 077
-
     # First, copy any existing identities files from the old
     # storage location to the new one for backwards compat.
     # Then, attempt key generation.
@@ -296,5 +292,9 @@ main() {
 # Ensure that debug mode is never enabled to
 # prevent the password from leaking.
 set +x
+
+# Restrict permissions of any new files to
+# only the current user.
+umask 077
 
 [ "$1" ] || usage && main "$@"
