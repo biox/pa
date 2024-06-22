@@ -28,7 +28,7 @@ pw_add() {
     fi
 
     mkdir -p "$(dirname "./$name")" ||
-        die "Couldn't create category '$(dirname "./$name")'"
+        die "Couldn't create category '$(dirname "./$name" | cut -c3-)'"
 
     # Use 'age' to store the password in an encrypted file.
     # A heredoc is used here instead of a 'printf' to avoid
