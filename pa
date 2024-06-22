@@ -259,8 +259,8 @@ main() {
     glob "$1" 'a*' && [ -f "$2.age" ] &&
         die "Password '$2' already exists"
 
-    glob "$2" '/*' &&
-        die "Category can't start with '/'"
+    glob "$2" '/*' || glob "$2" '*/' &&
+        die "Name can't start or end with '/'"
 
     glob "$2" '../*' || glob "$2" '*/../*' &&
         die "Category went out of bounds"
