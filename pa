@@ -24,6 +24,9 @@ pw_add() {
         [ "$pass" = "$pass2" ] || die "Passwords do not match"
     fi
 
+    mkdir -p "$(dirname "./$name")" ||
+        die "Couldn't create category '$(dirname "./$name")'"
+
     # Use 'age' to store the password in an encrypted file.
     # A heredoc is used here instead of a 'printf' to avoid
     # leaking the password through the '/proc' filesystem.
@@ -85,7 +88,7 @@ pw_del() {
         # Remove empty parent directories of a password
         # entry. It's fine if this fails as it means that
         # another entry also lives in the same directory.
-        rmdir -p "./${1%/*}" 2>/dev/null || :
+        rmdir -p "$(dirname "./$1")" 2>/dev/null || :
 
         git_add_and_commit "./$1.age" "delete '$1'"
     }
@@ -197,6 +200,12 @@ usage() {
 }
 
 main() {
+    command -v age >/dev/null 2>&1 ||
+        die "age not found, install per https://github.com/FiloSottile/age"
+
+    command -v age-keygen >/dev/null 2>&1 ||
+        die "age-keygen not found, install per https://github.com/FiloSottile/age"
+
     basedir="${XDG_DATA_HOME:=$HOME/.local/share}/pa"
     : "${PA_DIR:=$basedir/passwords}"
     identities_file="$basedir/identities"
@@ -241,12 +250,6 @@ main() {
         git_add_and_commit . "initial commit"
     }
 
-    command -v age >/dev/null 2>&1 ||
-        die "age not found, install per https://github.com/FiloSottile/age"
-
-    command -v age-keygen >/dev/null 2>&1 ||
-        die "age-keygen not found, install per https://github.com/FiloSottile/age"
-
     glob "$1" '[ades]*' && [ -z "$2" ] &&
         die "Missing [name] argument"
 
@@ -256,14 +259,11 @@ main() {
     glob "$1" 'a*' && [ -f "$2.age" ] &&
         die "Password '$2' already exists"
 
-    glob "$2" '*/*' && glob "$2" '*../*' &&
-        die "Category went out of bounds"
-
     glob "$2" '/*' &&
         die "Category can't start with '/'"
 
-    glob "$2" '*/*' && { mkdir -p "./${2%/*}" ||
-        die "Couldn't create category '${2%/*}'"; }
+    glob "$2" '../*' || glob "$2" '*/../*' &&
+        die "Category went out of bounds"
 
     # Restrict permissions of any new files to
     # only the current user.
