@@ -348,6 +348,10 @@ set +x
 # files to avoid TOCTOU vulnerabilities.
 set -C
 
+# Ensure that pipelines return status of the
+# last failed command.
+set -o pipefail
+
 # Restrict permissions of any new files to
 # only the current user.
 umask 077
