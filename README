@@ -20,7 +20,7 @@
 
   usage
     pa
-      a simple password manager based on age
+      a simple password manager
 
     commands:
       [a]dd  [name] - Add a password entry.
@@ -31,7 +31,7 @@
 
     env vars:
       Password length:   export PA_LENGTH=50
-      Password pattern:  export PA_PATTERN=_A-Z-a-z-0-9
+      Password pattern:  export PA_PATTERN=A-Za-z0-9-_
       Password dir:      export PA_DIR=~/.local/share/pa/passwords
       Disable tracking:  export PA_NOGIT=
 
@@ -51,7 +51,7 @@
     <opens $EDITOR or vi>
 
     $ pa del test
-    Delete pass file 'test'? [y/N]: y
+    Delete password 'test'? [y/N]: y
 
 
   faq

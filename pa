@@ -1,34 +1,34 @@
 #!/bin/sh
 #
-# pa - a simple password manager based on age
+# pa - a simple password manager
 
 pw_add() {
     name=$1
 
     if yn "Generate a password?"; then
-        pass=$(rand_chars "${PA_LENGTH:-50}" "${PA_PATTERN:-_A-Z-a-z-0-9}")
+        pass=$(rand_chars "${PA_LENGTH:-50}" "${PA_PATTERN:-A-Za-z0-9-_}")
 
         [ "$pass" ] ||
             die "Couldn't generate a password"
     else
         # 'sread()' is a simple wrapper function around 'read'
         # to prevent user input from being printed to the terminal.
-        sread pass "Enter password"
+        sread pass "Enter a password"
 
         [ "$pass" ] ||
             die "Password can't be empty"
 
-        sread pass2 "Enter password (again)"
+        sread pass2 "Enter a password (again)"
 
         # Disable this check as we dynamically populate the two
         # passwords using the 'sread()' function.
         # shellcheck disable=2154
         [ "$pass" = "$pass2" ] ||
-            die "Passwords do not match"
+            die "Passwords don't match"
     fi
 
     mkdir -p "$(dirname "./$name")" ||
-        die "Couldn't create category '$(dirname "./$name")'"
+        die "Couldn't create category '$(dirname "./$name" | cut -c3-)'"
 
     # Use 'age' to store the password in an encrypted file.
     # A heredoc is used here instead of a 'printf' to avoid
@@ -37,7 +37,7 @@ pw_add() {
     # Heredocs are sometimes implemented via temporary files,
     # however this is typically done using 'mkstemp()' which
     # is more secure than a leak in '/proc'.
-    age --encrypt -R "$recipients_file" -o "./$name.age" <<-EOF ||
+    $age --encrypt -R "$recipients_file" -o "./$name.age" <<-EOF ||
 		$pass
 	EOF
         die "Couldn't encrypt $name.age"
@@ -67,19 +67,19 @@ pw_edit() {
 
     # Handle nested items (/foo/bar.age)
     mkdir -p "$(dirname "$tmpfile")" ||
-        die "Couldn't create shared memory dir"
+        die "Couldn't create a shared memory dir"
 
     trap 'rm -rf "$editdir"' EXIT
 
     if [ ! -f "$name.age" ]; then new=true; else new=false && {
-        age --decrypt -i "$identities_file" -o "$tmpfile" "./$name.age" ||
+        $age --decrypt -i "$identities_file" -o "$tmpfile" "./$name.age" ||
             die "Couldn't decrypt $name.age"
     }; fi
 
     "${EDITOR:-vi}" "$tmpfile"
 
     [ -f "$tmpfile" ] && {
-        age --encrypt -R "$recipients_file" -o "./$name.age" "$tmpfile" ||
+        $age --encrypt -R "$recipients_file" -o "./$name.age" "$tmpfile" ||
             die "Couldn't encrypt $name.age"
 
         git_add_and_commit "./$name.age" "edit '$name'"
@@ -89,7 +89,7 @@ pw_edit() {
 }
 
 pw_del() {
-    yn "Delete pass file '$1'?" && {
+    yn "Delete password '$1'?" && {
         rm -f "./$1.age"
 
         # Remove empty parent directories of a password
@@ -102,7 +102,7 @@ pw_del() {
 }
 
 pw_show() {
-    age --decrypt -i "$identities_file" "./$1.age" ||
+    $age --decrypt -i "$identities_file" "./$1.age" ||
         die "Couldn't decrypt $1.age"
 }
 
@@ -188,7 +188,7 @@ die() {
 usage() {
     printf %s "\
   pa
-    a simple password manager based on age
+    a simple password manager
 
   commands:
     [a]dd  [name] - Add a password entry.
@@ -199,7 +199,7 @@ usage() {
 
   env vars:
     Password length:   export PA_LENGTH=50
-    Password pattern:  export PA_PATTERN=_A-Z-a-z-0-9
+    Password pattern:  export PA_PATTERN=A-Za-z0-9-_
     Password dir:      export PA_DIR=~/.local/share/pa/passwords
     Disable tracking:  export PA_NOGIT=
 "
@@ -207,11 +207,11 @@ usage() {
 }
 
 main() {
-    command -v age >/dev/null 2>&1 ||
-        die "age not found, install per https://github.com/FiloSottile/age"
+    age=$(command -v age || command -v rage) ||
+        die "age not found, install per https://age-encryption.org"
 
-    command -v age-keygen >/dev/null 2>&1 ||
-        die "age-keygen not found, install per https://github.com/FiloSottile/age"
+    age_keygen=$(command -v age-keygen || command -v rage-keygen) ||
+        die "age-keygen not found, install per https://age-encryption.org"
 
     basedir="${XDG_DATA_HOME:=$HOME/.local/share}/pa"
     : "${PA_DIR:=$basedir/passwords}"
@@ -246,7 +246,7 @@ main() {
         # Configure diff driver for age encrypted files that treats them as
         # binary and decrypts them when a human-readable diff is requested.
         git config diff.age.binary true
-        git config diff.age.textconv "age --decrypt -i \"$identities_file\""
+        git config diff.age.textconv "$age --decrypt -i \"$identities_file\""
 
         # Assign this diff driver to all passwords.
         printf '%s\n' '*.age diff=age' >.gitattributes
@@ -274,10 +274,10 @@ main() {
     # Then, attempt key generation.
     [ -f "$identities_file" ] ||
         cp ~/.age/key.txt "$identities_file" 2>/dev/null ||
-        age-keygen -o "$identities_file" 2>/dev/null
+        $age_keygen -o "$identities_file" 2>/dev/null
 
     [ -f "$recipients_file" ] ||
-        age-keygen -y -o "$recipients_file" "$identities_file" 2>/dev/null
+        $age_keygen -y -o "$recipients_file" "$identities_file" 2>/dev/null
 
     # Ensure that we leave the terminal in a usable state on Ctrl+C.
     [ -t 1 ] && trap 'stty echo icanon; trap - INT; kill -s INT 0' INT
