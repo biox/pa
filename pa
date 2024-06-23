@@ -250,7 +250,7 @@ main() {
         # Configure diff driver for age encrypted files that treats them as
         # binary and decrypts them when a human-readable diff is requested.
         git config diff.age.binary true
-        git config diff.age.textconv "$age --decrypt -i \"$identities_file\""
+        git config diff.age.textconv "$age --decrypt -i '$identities_file'"
 
         # Assign this diff driver to all passwords.
         printf '%s\n' '*.age diff=age' >.gitattributes

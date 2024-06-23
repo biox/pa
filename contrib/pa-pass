@@ -20,3 +20,7 @@ find "$PASSWORD_STORE_DIR" -name '*.gpg' | while read -r passfile; do
     gpg2 -d "$passfile" | $age -R "$basedir/recipients" -o "$PA_DIR/$name.age"
     printf '%s\n' "Saved '$name' to the store."
 done
+
+if [ -z "${PA_NOGIT+x}" ] && [ -d "$PA_DIR/.git" ] && command -v git >/dev/null 2>&1; then
+    git -C "$PA_DIR" add . && git -C "$PA_DIR" commit -m "migrate from pass"
+fi

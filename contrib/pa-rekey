@@ -15,7 +15,7 @@ umask 077
 [ "$PA_RECIPIENTS" ] && cp "$PA_RECIPIENTS" "$basedir/recipients.tmp"
 
 if age_keygen=$(command -v age-keygen || command -v rage-keygen); then
-    $age_keygen >>"$basedir/identities.tmp" 2>/dev/null &&
+    $age_keygen >>"$basedir/identities.tmp" 2>/dev/null
     $age_keygen -y "$basedir/identities.tmp" >>"$basedir/recipients.tmp" 2>/dev/null
 fi
 
@@ -29,4 +29,8 @@ done
 if [ "$age_keygen" ]; then
     mv "$basedir/identities.tmp" "$basedir/identities"
     mv "$basedir/recipients.tmp" "$basedir/recipients"
+fi
+
+if [ -z "${PA_NOGIT+x}" ] && [ -d "$PA_DIR/.git" ] && command -v git >/dev/null 2>&1; then
+    git -C "$PA_DIR" add . && git -C "$PA_DIR" commit -m "rekey"
 fi
