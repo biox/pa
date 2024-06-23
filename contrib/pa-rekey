@@ -14,13 +14,19 @@ umask 077
 [ "$PA_IDENTITIES" ] && cp "$PA_IDENTITIES" "$basedir/identities.tmp"
 [ "$PA_RECIPIENTS" ] && cp "$PA_RECIPIENTS" "$basedir/recipients.tmp"
 
-age-keygen >>"$basedir/identities.tmp" 2>/dev/null
-age-keygen -y "$basedir/identities.tmp" >>"$basedir/recipients.tmp" 2>/dev/null
+if age_keygen=$(command -v age-keygen || command -v rage-keygen); then
+    $age_keygen >>"$basedir/identities.tmp" 2>/dev/null &&
+    $age_keygen -y "$basedir/identities.tmp" >>"$basedir/recipients.tmp" 2>/dev/null
+fi
+
+age=$(command -v age || command -v rage)
 
 pa list | while read -r name; do
-    pa show "$name" | age -R "$basedir/recipients.tmp" -o "$PA_DIR/$name.tmp.age"
+    pa show "$name" | $age -R "$basedir/recipients.tmp" -o "$PA_DIR/$name.tmp.age"
     mv "$PA_DIR/$name.tmp.age" "$PA_DIR/$name.age"
 done
 
-mv "$basedir/identities.tmp" "$basedir/identities"
-mv "$basedir/recipients.tmp" "$basedir/recipients"
+if [ "$age_keygen" ]; then
+    mv "$basedir/identities.tmp" "$basedir/identities"
+    mv "$basedir/recipients.tmp" "$basedir/recipients"
+fi
