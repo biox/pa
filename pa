@@ -4,9 +4,7 @@
 
 pw_add() {
     if yn "Generate a password?"; then
-        pass=$(rand_chars "${PA_LENGTH:-50}" "${PA_PATTERN:-A-Za-z0-9-_}")
-
-        [ "$pass" ] ||
+        pass=$(rand_chars "${PA_LENGTH:-50}" "${PA_PATTERN:-A-Za-z0-9-_}") ||
             die "Couldn't generate a password"
     else
         # 'sread()' is a simple wrapper function around 'read'
@@ -56,16 +54,16 @@ pw_edit() {
     [ -w /dev/shm ] || tmpdir=/tmp
 
     # Reimplement mktemp here, because
-    # mktemp isn't defined in POSIX
-    editdir="$tmpdir/pa.$(rand_chars 8 '[:alnum:]')"
+    # mktemp isn't defined in POSIX.
+    suffix="$(rand_chars 10 'A-Za-z0-9')" ||
+        die "Couldn't generate random characters"
 
-    tmpfile="$editdir/$name.age"
+    tmpfile="$tmpdir/pa.$suffix/$name.age"
 
-    # Handle nested items (/foo/bar.age)
     mkdir -p "$(dirname "$tmpfile")" ||
         die "Couldn't create a shared memory dir"
 
-    trap 'rm -rf "$editdir"' EXIT
+    trap 'rm -rf "$tmpdir/pa.$suffix"' EXIT
 
     if [ ! -f "$name.age" ]; then new=true; else new=false && {
         $age --decrypt -i "$identities_file" -o "$tmpfile" "./$name.age" ||
@@ -123,8 +121,6 @@ rand_chars() {
     #
     # $1 = number of chars to receive
     # $2 = filter for the chars
-    #
-    # TODO: add more safety/compat here in case /dev/urandom doesn't exist
     LC_ALL=C tr -dc "$2" </dev/urandom | dd ibs=1 obs=1 count="$1" 2>/dev/null
 }
 
