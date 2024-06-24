@@ -5,32 +5,36 @@
 # Reuse identities file: export PA_IDENTITIES=~/.local/share/pa/identities
 # Reuse recipients file: export PA_RECIPIENTS=~/.local/share/pa/recipients
 
-basedir="${XDG_DATA_HOME:=$HOME/.local/share}/pa"
-: "${PA_DIR:=$basedir/passwords}"
+die() {
+    printf 'error: %s.\n' "$1" >&2
+    exit 1
+}
+
+age=$(command -v age || command -v rage) ||
+    die "age not found, install per https://age-encryption.org"
+
+age_keygen=$(command -v age-keygen || command -v rage-keygen) ||
+    die "age-keygen not found, install per https://age-encryption.org"
 
 # Restrict permissions of any new files to only the current user.
 umask 077
 
+basedir="${XDG_DATA_HOME:=$HOME/.local/share}/pa"
+: "${PA_DIR:=$basedir/passwords}"
+
 [ "$PA_IDENTITIES" ] && cp "$PA_IDENTITIES" "$basedir/identities.tmp"
 [ "$PA_RECIPIENTS" ] && cp "$PA_RECIPIENTS" "$basedir/recipients.tmp"
 
-if age_keygen=$(command -v age-keygen || command -v rage-keygen); then
-    $age_keygen >>"$basedir/identities.tmp" 2>/dev/null
-    $age_keygen -y "$basedir/identities.tmp" >>"$basedir/recipients.tmp" 2>/dev/null
-fi
-
-age=$(command -v age || command -v rage)
+$age_keygen >>"$basedir/identities.tmp" 2>/dev/null
+$age_keygen -y "$basedir/identities.tmp" >>"$basedir/recipients.tmp" 2>/dev/null
 
 pa list | while read -r name; do
     pa show "$name" | $age -R "$basedir/recipients.tmp" -o "$PA_DIR/$name.tmp.age"
     mv "$PA_DIR/$name.tmp.age" "$PA_DIR/$name.age"
 done
 
-if [ "$age_keygen" ]; then
-    mv "$basedir/identities.tmp" "$basedir/identities"
-    mv "$basedir/recipients.tmp" "$basedir/recipients"
-fi
+mv "$basedir/identities.tmp" "$basedir/identities"
+mv "$basedir/recipients.tmp" "$basedir/recipients"
 
-if [ -z "${PA_NOGIT+x}" ] && [ -d "$PA_DIR/.git" ] && command -v git >/dev/null 2>&1; then
-    git -C "$PA_DIR" add . && git -C "$PA_DIR" commit -m "rekey"
-fi
+# Recreate git repository for forward secrecy.
+[ -d "$PA_DIR/.git" ] && rm -rf "$PA_DIR/.git" && pa list >/dev/null
