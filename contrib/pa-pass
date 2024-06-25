@@ -6,7 +6,7 @@
 # Password dir of pa:   export PA_DIR=~/.local/share/pa/passwords
 
 : "${PASSWORD_STORE_DIR:=$HOME/.password-store}"
-basedir="${XDG_DATA_HOME:=$HOME/.local/share}/pa"
+basedir=${XDG_DATA_HOME:=$HOME/.local/share}/pa
 : "${PA_DIR:=$basedir/passwords}"
 
 # Create pa store if it doesn't exist.
@@ -15,7 +15,7 @@ pa list >/dev/null || exit
 age=$(command -v age || command -v rage)
 
 find "$PASSWORD_STORE_DIR" -name '*.gpg' | while read -r passfile; do
-    name="$(printf '%s\n' "${passfile#"$PASSWORD_STORE_DIR/"}" | sed 's/\.gpg$//')"
+    name=$(printf '%s\n' "${passfile#"$PASSWORD_STORE_DIR/"}" | sed 's/\.gpg$//')
     mkdir -p "$PA_DIR/$(dirname "$name")"
     gpg2 -d "$passfile" | $age -R "$basedir/recipients" -o "$PA_DIR/$name.age"
     printf '%s\n' "Saved '$name' to the store."

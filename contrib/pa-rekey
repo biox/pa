@@ -19,7 +19,7 @@ age_keygen=$(command -v age-keygen || command -v rage-keygen) ||
 # Restrict permissions of any new files to only the current user.
 umask 077
 
-basedir="${XDG_DATA_HOME:=$HOME/.local/share}/pa"
+basedir=${XDG_DATA_HOME:=$HOME/.local/share}/pa
 : "${PA_DIR:=$basedir/passwords}"
 
 [ "$PA_IDENTITIES" ] && cp "$PA_IDENTITIES" "$basedir/identities.tmp"

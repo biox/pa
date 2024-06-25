@@ -55,10 +55,10 @@ pw_edit() {
 
     # Reimplement mktemp here, because
     # mktemp isn't defined in POSIX.
-    suffix="$(rand_chars 10 'A-Za-z0-9')" ||
+    suffix=$(rand_chars 10 'A-Za-z0-9') ||
         die "Couldn't generate random characters"
 
-    tmpfile="$tmpdir/pa.$suffix/$name.age"
+    tmpfile=$tmpdir/pa.$suffix/$name.age
 
     mkdir -p "$(dirname "$tmpfile")" ||
         die "Couldn't create a shared memory dir"
@@ -213,10 +213,10 @@ main() {
     shift
     name=$(printf %s "$*" | LC_ALL=C tr -d '[:cntrl:]')
 
-    basedir="${XDG_DATA_HOME:=$HOME/.local/share}/pa"
+    basedir=${XDG_DATA_HOME:=$HOME/.local/share}/pa
     : "${PA_DIR:=$basedir/passwords}"
-    identities_file="$basedir/identities"
-    recipients_file="$basedir/recipients"
+    identities_file=$basedir/identities
+    recipients_file=$basedir/recipients
 
     mkdir -p "$basedir" "$PA_DIR" ||
         die "Couldn't create pa directories"
