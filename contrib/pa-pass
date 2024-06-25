@@ -15,8 +15,8 @@ pa list >/dev/null || exit
 age=$(command -v age || command -v rage)
 
 find "$PASSWORD_STORE_DIR" -name '*.gpg' | while read -r passfile; do
-    name=$(printf '%s\n' "${passfile#"$PASSWORD_STORE_DIR/"}" | sed 's/\.gpg$//')
-    mkdir -p "$PA_DIR/$(dirname "$name")"
+    name=$(printf %s "${passfile#"$PASSWORD_STORE_DIR/"}" | sed 's/\.gpg$//')
+    mkdir -p "$PA_DIR/$(dirname "./$name")"
     gpg2 -d "$passfile" | $age -R "$basedir/recipients" -o "$PA_DIR/$name.age"
     printf '%s\n' "Saved '$name' to the store."
 done
