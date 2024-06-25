@@ -70,7 +70,7 @@ pw_edit() {
             die "Couldn't decrypt $name.age"
     }; fi
 
-    "${EDITOR:-vi}" "$tmpfile"
+    ${EDITOR:-vi} "$tmpfile"
 
     [ -f "$tmpfile" ] && {
         $age --encrypt -R "$recipients_file" -o "./$name.age" "$tmpfile" ||
