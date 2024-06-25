@@ -38,9 +38,9 @@ pw_add() {
 	EOF
         die "Couldn't encrypt $name.age"
 
-    git_add_and_commit "./$name.age" "add '$name'"
-
     printf '%s\n' "Saved '$name' to the store."
+
+    git_add_and_commit "./$name.age" "add '$name'"
 }
 
 pw_edit() {
@@ -76,9 +76,9 @@ pw_edit() {
         $age --encrypt -R "$recipients_file" -o "./$name.age" "$tmpfile" ||
             die "Couldn't encrypt $name.age"
 
-        git_add_and_commit "./$name.age" "edit '$name'"
-
         if $new; then printf '%s\n' "Saved '$name' to the store."; fi
+
+        git_add_and_commit "./$name.age" "edit '$name'"
     }
 }
 
