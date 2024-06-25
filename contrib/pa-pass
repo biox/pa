@@ -10,7 +10,7 @@ basedir="${XDG_DATA_HOME:=$HOME/.local/share}/pa"
 : "${PA_DIR:=$basedir/passwords}"
 
 # Create pa store if it doesn't exist.
-pa list >/dev/null
+pa list >/dev/null || exit
 
 age=$(command -v age || command -v rage)
 
