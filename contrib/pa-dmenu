@@ -1,7 +1,9 @@
 #!/bin/sh
 #
 # prompt for a password via dmenu
+# generate new password if it doesn't exist
 # then type the selected password via xdotool
 
 name=$(pa list | dmenu "$@")
-pa show "$name" | head -n 1 | tr -d '\n' | xdotool type --clearmodifiers --file -
+{ pa show "$name" || { printf y | pa add "$name" >/dev/null && pa show "$name"; }; } |
+    head -n 1 | tr -d '\n' | xdotool type --clearmodifiers --file -
