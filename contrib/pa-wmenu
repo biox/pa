@@ -1,7 +1,9 @@
 #!/bin/sh
 #
 # prompt for a password via wmenu
+# generate new password if it doesn't exist
 # then type the selected password via wtype
 
 name=$(pa list | wmenu "$@")
-pa show "$name" | head -n 1 | tr -d '\n' | wtype -
+{ pa show "$name" || { printf y | pa add "$name" >/dev/null && pa show "$name"; }; } |
+    head -n 1 | tr -d '\n' | wtype -
