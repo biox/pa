@@ -129,7 +129,7 @@ yn() {
 
     # Enable raw input to allow for a single byte to be read from
     # stdin without needing to wait for the user to press Return.
-    stty -echo -icanon
+    [ -t 0 ] && stty -echo -icanon
 
     # Read a single byte from stdin using 'dd'. POSIX 'read' has
     # no support for single/'N' byte based input from the user.
@@ -137,7 +137,7 @@ yn() {
 
     # Disable raw input, leaving the terminal how we *should*
     # have found it.
-    stty echo icanon
+    [ -t 0 ] && stty echo icanon
 
     printf '%s\n' "$answer"
 
@@ -153,9 +153,9 @@ sread() {
     # Disable terminal printing while the user inputs their
     # password. POSIX 'read' has no '-s' flag which would
     # effectively do the same thing.
-    stty -echo
+    [ -t 0 ] && stty -echo
     read -r "$1"
-    stty echo
+    [ -t 0 ] && stty echo
 
     printf '\n'
 }
@@ -280,7 +280,7 @@ main() {
         $age_keygen -y -o "$recipients_file" "$identities_file" 2>/dev/null
 
     # Ensure that we leave the terminal in a usable state on Ctrl+C.
-    [ -t 1 ] && trap 'stty echo icanon; trap - INT; kill -s INT 0' INT
+    [ -t 0 ] && trap 'stty echo icanon; trap - INT; kill -s INT 0' INT
 
     case $command in
     a*) pw_add ;;
