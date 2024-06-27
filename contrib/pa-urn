@@ -1,0 +1,70 @@
+#!/bin/sh
+
+usage() {
+    printf %s "\
+  pa-urn
+
+  commands:
+    [c]lose [file] - Archive password store into file.
+    [o]pen  [file] - Extract file into password store.
+"
+}
+
+create_tar() {
+    if command -v pax >/dev/null 2>&1; then
+        pax -x ustar -w "./$1"
+    else
+        tar c "./$1"
+    fi
+}
+
+extract_tar() {
+    if command -v pax >/dev/null 2>&1; then
+        pax -r
+    else
+        tar x
+    fi
+}
+
+die() {
+    printf 'error: %s.\n' "$1" >&2
+    exit 1
+}
+
+set -o pipefail
+
+age=$(command -v age || command -v rage) ||
+    die "age not found, install per https://age-encryption.org"
+
+basedir=${XDG_DATA_HOME:=$HOME/.local/share}/pa
+: "${PA_DIR:=$basedir/passwords}"
+
+dir=$(realpath "$PA_DIR") ||
+    die "Couldn't get path to password directory"
+
+name=$(basename "$dir")
+if [ "$2" ]; then
+    urn=$(realpath -- "$2") ||
+        die "Couldn't get path to file '$2'"
+else
+    urn=$(pwd)/$name.tar.age ||
+        die "Couldn't get working directory"
+fi
+
+cd "$(dirname "$dir")" ||
+    die "Couldn't change to parent of password directory"
+
+case $1 in
+c*)
+    { create_tar "$name" | $age -R "$basedir/recipients" -o "$urn"; } &&
+        printf '%s\n' "Store has been archived into $urn"
+    ;;
+o*)
+    [ -f "$urn" ] ||
+        die "File '$urn' doesn't exist"
+
+    { $age --decrypt -i "$basedir/identities" "$urn" | extract_tar; } &&
+        printf '%s\n' "File has been extracted into $PA_DIR"
+    ;;
+*) usage ;;
+esac
