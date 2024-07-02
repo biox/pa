@@ -1,0 +1,23 @@
+---
+name: ci-pr
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-pr-${{ github.event.number }}
+  cancel-in-progress: true
+
+jobs:
+  sh-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+        if: ${{ !cancelled() }}
+      - uses: azohra/shell-linter@latest
+        if: ${{ !cancelled() }}
+        with:
+          path: "pa,contrib"
+          exclude-paths: "contrib/*.*"
