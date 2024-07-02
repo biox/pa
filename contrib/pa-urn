@@ -1,0 +1,49 @@
+#!/bin/sh
+#
+# put password store into an encrypted archive
+# or open previously created encrypted archive
+
+age=$(command -v age || command -v rage) || {
+    printf 'error: age not found, install per https://age-encryption.org.\n' >&2
+    exit 1
+}
+
+make_tar() {
+    if command -v pax >/dev/null 2>&1; then
+        pax -x ustar -w "./$1"
+    else
+        tar -H ustar -c "./$1"
+    fi
+}
+
+extract_tar() {
+    if command -v pax >/dev/null 2>&1; then
+        pax -r
+    else
+        tar -x
+    fi
+}
+
+set -o pipefail
+
+basedir=${XDG_DATA_HOME:=$HOME/.local/share}/pa
+: "${PA_DIR:=$basedir/passwords}"
+
+dir=$(realpath -- "$PA_DIR") || exit 1
+name=$(basename "$dir")
+if [ "$1" ]; then
+    urn=$(realpath -- "$1") || exit 1
+else
+    urn=$(pwd)/$name.tar.age || exit 1
+fi
+cd "$(dirname "$dir")" || exit 1
+
+if [ -f "$urn" ]; then
+    { $age --decrypt -i "$basedir/identities" "$urn" | extract_tar; } &&
+        rm "$urn" &&
+        printf '%s\n' "urn has been opened into $PA_DIR"
+elif [ -d "$PA_DIR" ]; then
+    { make_tar "$name" | $age -R "$basedir/recipients" -o "$urn"; } &&
+        rm -rf "$PA_DIR" &&
+        printf '%s\n' "pa dir has been urned to $urn"
+else exit 1; fi
