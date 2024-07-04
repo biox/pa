@@ -86,9 +86,6 @@ pw_del() {
     yn "Delete password '$name'?" && {
         rm -f "./$name.age"
 
-        # Remove empty parent directories of a password
-        # entry. It's fine if this fails as it means that
-        # another entry also lives in the same directory.
         rmdir -p "$(dirname "./$name")" 2>/dev/null || :
 
         git_add_and_commit "./$name.age" "delete '$name'"
