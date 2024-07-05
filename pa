@@ -110,8 +110,7 @@ rand_chars() {
     # 'tr' command to translate the random bytes into a
     # configurable character set.
     #
-    # The 'dd' command is then used to read only the desired
-    # password length, since head -c isn't POSIX compliant.
+    # The 'dd' command is then used to read only the desired length.
     #
     # Regarding usage of '/dev/urandom' instead of '/dev/random'.
     # See: https://www.2uo.de/myths-about-urandom
