@@ -22,19 +22,34 @@ umask 077
 basedir=${XDG_DATA_HOME:=$HOME/.local/share}/pa
 : "${PA_DIR:=$basedir/passwords}"
 
-[ "$PA_IDENTITIES" ] && cp "$PA_IDENTITIES" "$basedir/identities.tmp"
-[ "$PA_RECIPIENTS" ] && cp "$PA_RECIPIENTS" "$basedir/recipients.tmp"
+mkdir "$basedir/tmp" ||
+    die "Couldn't create temporary directory"
 
-$age_keygen >>"$basedir/identities.tmp" 2>/dev/null
-$age_keygen -y "$basedir/identities.tmp" >>"$basedir/recipients.tmp" 2>/dev/null
+trap 'rm -rf "$basedir/tmp"; exit' EXIT
+trap 'rm -rf "$basedir/tmp"; trap - INT; kill -s INT 0' INT
+
+cp -R "$PA_DIR" "$basedir/tmp/passwords" ||
+    die "Couldn't copy password directory"
+
+# Remove git repository for forward secrecy.
+rm -rf "$basedir/tmp/passwords/.git"
+
+[ "$PA_IDENTITIES" ] && cp "$PA_IDENTITIES" "$basedir/tmp/identities"
+[ "$PA_RECIPIENTS" ] && cp "$PA_RECIPIENTS" "$basedir/tmp/recipients"
+
+$age_keygen >>"$basedir/tmp/identities" 2>/dev/null
+$age_keygen -y "$basedir/tmp/identities" >>"$basedir/tmp/recipients" 2>/dev/null
 
 pa list | while read -r name; do
-    pa show "$name" | $age -R "$basedir/recipients.tmp" -o "$PA_DIR/$name.tmp.age"
-    mv "$PA_DIR/$name.tmp.age" "$PA_DIR/$name.age"
+    pa show "$name" | $age -R "$basedir/tmp/recipients" -o "$basedir/tmp/passwords/$name.age" ||
+        die "Couldn't encrypt $name.age"
 done
 
-mv "$basedir/identities.tmp" "$basedir/identities"
-mv "$basedir/recipients.tmp" "$basedir/recipients"
+rm -rf "$PA_DIR"
+mv "$basedir/tmp/passwords" "$PA_DIR"
+mv "$basedir/tmp/identities" "$basedir/identities"
+mv "$basedir/tmp/recipients" "$basedir/recipients"
+rmdir "$basedir/tmp"
 
-# Recreate git repository for forward secrecy.
-[ -d "$PA_DIR/.git" ] && rm -rf "$PA_DIR/.git" && pa list >/dev/null
+# Recreate git repository if needed.
+pa list >/dev/null
