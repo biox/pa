@@ -45,6 +45,8 @@ pa list | while read -r name; do
         die "Couldn't encrypt $name.age"
 done
 
+trap - INT EXIT
+
 rm -rf "$PA_DIR"
 mv "$basedir/tmp/passwords" "$PA_DIR"
 mv "$basedir/tmp/identities" "$basedir/identities"
