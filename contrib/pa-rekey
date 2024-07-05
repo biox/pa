@@ -22,13 +22,16 @@ umask 077
 basedir=${XDG_DATA_HOME:=$HOME/.local/share}/pa
 : "${PA_DIR:=$basedir/passwords}"
 
+realstore=$(realpath "$PA_DIR") ||
+    die "Couldn't get path to password directory"
+
 mkdir "$basedir/tmp" ||
     die "Couldn't create temporary directory"
 
 trap 'rm -rf "$basedir/tmp"; exit' EXIT
 trap 'rm -rf "$basedir/tmp"; trap - INT; kill -s INT 0' INT
 
-cp -R "$PA_DIR" "$basedir/tmp/passwords" ||
+cp -Rp "$realstore" "$basedir/tmp/passwords" ||
     die "Couldn't copy password directory"
 
 # Remove git repository for forward secrecy.
@@ -47,8 +50,8 @@ done
 
 trap - INT EXIT
 
-rm -rf "$PA_DIR"
-mv "$basedir/tmp/passwords" "$PA_DIR"
+rm -rf "$realstore"
+mv "$basedir/tmp/passwords" "$realstore"
 mv "$basedir/tmp/identities" "$basedir/identities"
 mv "$basedir/tmp/recipients" "$basedir/recipients"
 rmdir "$basedir/tmp"
