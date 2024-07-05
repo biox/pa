@@ -233,7 +233,7 @@ main() {
     [ -z "${PA_NOGIT+x}" ] && command -v git >/dev/null 2>&1 && git_enabled=true
 
     $git_enabled && [ ! -d .git ] && {
-        git init
+        git init -q
 
         # Put something in user config if it's not set globally,
         # because git doesn't allow to commit without it.
