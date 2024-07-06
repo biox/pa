@@ -4,6 +4,6 @@
 # generate new password if it doesn't exist
 # then type the selected password via xdotool
 
-name=$(pa list | rofi -dmenu -i "$@") || exit
-{ pa show "$name" || { printf y | pa add "$name" >/dev/null && pa show "$name"; }; } |
+name=$(pa l | rofi -dmenu -i "$@") || exit
+{ pa s "$name" || { printf y | pa a "$name" >/dev/null && pa s "$name"; }; } |
     head -n 1 | tr -d '\n' | xdotool type --clearmodifiers --file -

@@ -4,4 +4,4 @@ function __fish_complete_pa_name -d 'Complete pa password names'
 end
 
 complete -c pa -f
-complete -c pa -n "__fish_complete_pa_name" -a "(pa list)"
+complete -c pa -n "__fish_complete_pa_name" -a "(pa l)"

@@ -25,26 +25,29 @@ basedir=${XDG_DATA_HOME:=$HOME/.local/share}/pa
 realstore=$(realpath "$PA_DIR") ||
     die "Couldn't get path to password directory"
 
-mkdir "$basedir/tmp" ||
+tmpdir=$basedir/tmp
+
+mkdir "$tmpdir" ||
     die "Couldn't create temporary directory"
 
-trap 'rm -rf "$basedir/tmp"; exit' EXIT
-trap 'rm -rf "$basedir/tmp"; trap - INT; kill -s INT 0' INT
+trap 'rm -rf "$tmpdir"; exit' EXIT
+trap 'rm -rf "$tmpdir"; trap - INT; kill -s INT 0' INT
 
-cp -Rp "$realstore" "$basedir/tmp/passwords" ||
+cp -Rp "$realstore" "$tmpdir/passwords" ||
     die "Couldn't copy password directory"
 
 # Remove git repository for forward secrecy.
-rm -rf "$basedir/tmp/passwords/.git"
+rm -rf "$tmpdir/passwords/.git"
 
-[ "$PA_IDENTITIES" ] && cp "$PA_IDENTITIES" "$basedir/tmp/identities"
-[ "$PA_RECIPIENTS" ] && cp "$PA_RECIPIENTS" "$basedir/tmp/recipients"
+[ "$PA_IDENTITIES" ] && cp "$PA_IDENTITIES" "$tmpdir/identities"
+[ "$PA_RECIPIENTS" ] && cp "$PA_RECIPIENTS" "$tmpdir/recipients"
 
-$age_keygen >>"$basedir/tmp/identities" 2>/dev/null
-$age_keygen -y "$basedir/tmp/identities" >>"$basedir/tmp/recipients" 2>/dev/null
+$age_keygen >>"$tmpdir/identities" 2>/dev/null
+$age_keygen -y "$tmpdir/identities" >>"$tmpdir/recipients" 2>/dev/null
 
-pa list | while read -r name; do
-    pa show "$name" | $age -R "$basedir/tmp/recipients" -o "$basedir/tmp/passwords/$name.age" ||
+pa l | while read -r name; do
+    pa s "$name" |
+        $age -R "$tmpdir/recipients" -o "$tmpdir/passwords/$name.age" ||
         die "Couldn't encrypt $name.age"
 done
 
@@ -53,10 +56,10 @@ trap - INT EXIT
 rm -rf "$realstore" ||
     die "Couldn't remove password directory"
 
-mv "$basedir/tmp/passwords" "$realstore"
-mv "$basedir/tmp/identities" "$(realpath "$basedir/identities")"
-mv "$basedir/tmp/recipients" "$(realpath "$basedir/recipients")"
-rmdir "$basedir/tmp"
+mv "$tmpdir/passwords" "$realstore"
+mv "$tmpdir/identities" "$(realpath "$basedir/identities")"
+mv "$tmpdir/recipients" "$(realpath "$basedir/recipients")"
+rmdir "$tmpdir"
 
 # Recreate git repository if needed.
-pa list >/dev/null
+pa l >/dev/null

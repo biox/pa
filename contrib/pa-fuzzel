@@ -4,6 +4,6 @@
 # generate new password if it doesn't exist
 # then type the selected password via wtype
 
-name=$(pa list | fuzzel -dmenu "$@") || exit
-{ pa show "$name" || { printf y | pa add "$name" >/dev/null && pa show "$name"; }; } |
+name=$(pa l | fuzzel -dmenu "$@") || exit
+{ pa s "$name" || { printf y | pa a "$name" >/dev/null && pa s "$name"; }; } |
     head -n 1 | tr -d '\n' | wtype -

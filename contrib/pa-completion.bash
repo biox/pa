@@ -3,7 +3,7 @@ _pa() {
         names=()
 
         # Escape all password names so compgen doesn't break.
-        while read -r name; do names+=("${name@Q}"); done < <(pa list)
+        while read -r name; do names+=("${name@Q}"); done < <(pa l)
 
         mapfile -t COMPREPLY < <(compgen -W "${names[*]}" -- "${COMP_WORDS[2]}")
         ;;
