@@ -50,10 +50,12 @@ done
 
 trap - INT EXIT
 
-rm -rf "$realstore"
+rm -rf "$realstore" ||
+    die "Couldn't remove password directory"
+
 mv "$basedir/tmp/passwords" "$realstore"
-mv "$basedir/tmp/identities" "$basedir/identities"
-mv "$basedir/tmp/recipients" "$basedir/recipients"
+mv "$basedir/tmp/identities" "$(realpath "$basedir/identities")"
+mv "$basedir/tmp/recipients" "$(realpath "$basedir/recipients")"
 rmdir "$basedir/tmp"
 
 # Recreate git repository if needed.
