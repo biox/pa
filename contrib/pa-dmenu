@@ -4,6 +4,6 @@
 # generate new password if it doesn't exist
 # then type the selected password via xdotool
 
-name=$(pa list | dmenu "$@")
+name=$(pa list | dmenu "$@") || exit
 { pa show "$name" || { printf y | pa add "$name" >/dev/null && pa show "$name"; }; } |
     head -n 1 | tr -d '\n' | xdotool type --clearmodifiers --file -
