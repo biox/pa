@@ -1,5 +1,6 @@
                    pa
         a simple password manager
+         https://passwordass.org
 
   features
     - encryption implemented using age[1]
@@ -95,7 +96,7 @@
 
 
   refs
-    [1]: https://github.com/FiloSottile/age
+    [1]: https://age-encryption.org
     [2]: https://j3s.sh/thought/storing-passwords-with-age.html
     [3]: https://github.com/biox/pa/issues/10#issuecomment-1369225383
     [4]: https://github.com/dylanaraps/pash
