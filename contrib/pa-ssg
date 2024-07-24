@@ -1,0 +1,117 @@
+#!/bin/sh
+#
+# pa's static site generator from repo
+
+genpage() {
+    if [ -f "$file" ]; then
+        dir=$(dirname "$file")
+        title=pa/$file
+    else
+        dir=$file
+        title=pa/$file/
+    fi
+
+    url=https://github.com/biox/pa
+
+    printf '<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<meta name="color-scheme" content="light dark">
+<title>%s</title>
+<style>
+body{
+  font-family:monospace;
+  font-size:10pt;
+  margin-left:auto;
+  margin-right:auto;
+  width:84ch;
+}
+a{color:black;text-decoration:none;}
+@media(prefers-color-scheme:dark){a{color:white;}}
+a:hover{background-color:#ddd;color:black;}
+#file{display:flex;flex-direction:row;gap:1ch;}
+.l{color:#555;}
+.l:target{color:#b82;}
+pre{margin:0;}
+</style>
+</head>
+<body>
+<pre><code>$ git clone -q <a href="%s">%s</a>.git
+$ cd ' "$title" "$url" "$url"
+
+    if [ "$dir" = "." ]; then
+        printf 'pa\n'
+    else
+        printf '<a href="../index.html">%s/</a>' "$(dirname "pa/$dir")"
+        basename "$dir"
+    fi
+
+    printf '$ ls -1 -p\n'
+
+    git ls-tree --name-only HEAD "$dir/" | while read -r entry; do
+        name=$(basename "$entry")
+        if [ -d "$entry" ]; then
+            printf '<a href="%s/index.html">%s/</a>\n' "$name" "$name"
+        elif [ "$entry" = "$file" ]; then
+            printf '<strong>%s</strong>\n' "$name"
+        elif [ "$entry" = "README" ]; then
+            printf '<a href="index.html">README</a>\n'
+        else
+            printf '<a href="%s.html">%s</a>\n' "$name" "$name"
+        fi
+    done
+
+    if [ -d "$file" ]; then
+        printf '</code></pre>\n</body>\n</html>\n'
+        return
+    fi
+
+    raw=$(basename "$file")
+    if [ "$file" = "README" ] || [ "$file" = "LICENSE" ]; then
+        printf '$ cat <a href="%s">%s</a>\n' "$raw" "$raw"
+        printf '</code></pre>\n<div id="file">\n<pre><code>'
+    else
+        printf '$ nl -b a -s '"' '"' -w 3 <a href="%s">%s</a>\n' "$raw" "$raw"
+        printf '</code></pre>\n<div id="file">\n<pre>'
+        l=1
+        while [ "$l" -le "$(wc -l "$file" | cut -d' ' -f1)" ]; do
+            printf '<a href="#L%d" id="L%d" class="l">%3d</a>\n' "$l" "$l" "$l"
+            l=$((l + 1))
+        done
+        printf '</pre>\n<pre><code>'
+    fi
+
+    sed -e 's & \&amp; g' \
+        -e 's < \&lt; g' \
+        -e 's \(https://[^ ">]\+\) <a\ href="\1">\1</a> g' "$file"
+
+    printf '</code></pre>\n</div>\n</body>\n</html>\n'
+}
+
+gen404() {
+    printf '<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<meta http-equiv="Refresh" content="0; URL=/%s">
+<meta name="color-scheme" content="light dark">
+<title>pa: not found</title>
+</html>\n' "$1"
+}
+
+cd "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)" || exit
+
+git ls-tree -dr --name-only HEAD | while read -r file; do
+    mkdir -p "site/$file"
+    genpage >"site/$file/index.html"
+    gen404 "$file" >"site/$file/404.html"
+done
+
+git ls-tree -r --name-only HEAD | while read -r file; do
+    cp "$file" "site/$file"
+    genpage >"site/$file.html"
+done
+
+cp "site/README.html" "site/index.html"
+gen404 >"site/404.html"
