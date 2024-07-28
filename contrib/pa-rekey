@@ -6,7 +6,7 @@
 # Reuse recipients file: export PA_RECIPIENTS=~/.local/share/pa/recipients
 
 die() {
-    printf '%s: %s.\n' "$0" "$1" >&2
+    printf '%s: %s.\n' "$(basename "$0")" "$1" >&2
     exit 1
 }
 
