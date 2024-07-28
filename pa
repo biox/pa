@@ -253,17 +253,17 @@ main() {
     glob "$command" '[ades]*' && [ -z "$name" ] &&
         die "Missing [name] argument"
 
-    glob "$command" '[ds]*' && [ ! -f "$name.age" ] &&
-        die "Password '$name' doesn't exist"
-
-    glob "$command" 'a*' && [ -f "$name.age" ] &&
-        die "Password '$name' already exists"
-
     glob "$name" '/*' || glob "$name" '*/' &&
         die "Name can't start or end with '/'"
 
     glob "$name" '../*' || glob "$name" '*/../*' &&
         die "Category went out of bounds"
+
+    glob "$command" 'a*' && [ -f "$name.age" ] &&
+        die "Password '$name' already exists"
+
+    glob "$command" '[ds]*' && [ ! -f "$name.age" ] &&
+        die "Password '$name' doesn't exist"
 
     # First, copy any existing identities files from the old
     # storage location to the new one for backwards compat.
