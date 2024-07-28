@@ -27,7 +27,7 @@ extract_tar() {
 }
 
 die() {
-    printf 'error: %s.\n' "$1" >&2
+    printf '%s: %s.\n' "$0" "$1" >&2
     exit 1
 }
 
