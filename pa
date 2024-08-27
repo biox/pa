@@ -73,6 +73,8 @@ pw_edit() {
     ${EDITOR:-vi} "$tmpfile"
 
     [ -f "$tmpfile" ] && {
+        mkdir -p "$(dirname "./$name")" ||
+            die "Couldn't create category '$(dirname "./$name" | cut -c3-)'"
         $age --encrypt -R "$recipients_file" -o "./$name.age" "$tmpfile" ||
             die "Couldn't encrypt $name.age"
 
