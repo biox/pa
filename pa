@@ -53,17 +53,10 @@ pw_edit() {
     # have non-standard methods of setup/access.
     [ -w /dev/shm ] || tmpdir=/tmp
 
-    # Reimplement mktemp here, because
-    # mktemp isn't defined in POSIX.
-    suffix=$(rand_chars 10 'A-Za-z0-9') ||
-        die "Couldn't generate random characters"
+    tmpfile=$(printf 'mkstemp(%s/pa.XXXXXX)' $tmpdir | m4) ||
+        die "Couldn't create a shared memory file"
 
-    tmpfile=$tmpdir/pa.$suffix/$name.age
-
-    mkdir -p "$(dirname "$tmpfile")" ||
-        die "Couldn't create a shared memory dir"
-
-    trap 'rm -rf "$tmpdir/pa.$suffix"' EXIT
+    trap 'rm -f "$tmpfile"' EXIT
 
     if [ ! -f "$name.age" ]; then new=true; else new=false && {
         $age --decrypt -i "$identities_file" -o "$tmpfile" "./$name.age" ||
@@ -72,9 +65,10 @@ pw_edit() {
 
     ${EDITOR:-vi} "$tmpfile"
 
-    [ -f "$tmpfile" ] && {
+    [ -s "$tmpfile" ] && {
         mkdir -p "$(dirname "./$name")" ||
             die "Couldn't create category '$(dirname "./$name" | cut -c3-)'"
+
         $age --encrypt -R "$recipients_file" -o "./$name.age" "$tmpfile" ||
             die "Couldn't encrypt $name.age"
 
