@@ -63,7 +63,8 @@ pw_edit() {
             die "Couldn't decrypt $name.age"
     }; fi
 
-    ${EDITOR:-vi} "$tmpfile"
+    ${EDITOR:-vi} "$tmpfile" ||
+        die "EDITOR exited non-zero"
 
     [ -s "$tmpfile" ] && {
         mkdir -p "$(dirname "./$name")" ||
