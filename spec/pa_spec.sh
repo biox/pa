@@ -10,7 +10,7 @@ Describe "pa"
   Describe "when started with an empty XDG_DATA_HOME"
     setup() {
       test_dir="$(mktemp -d)"
-      old_xdg_data_home="$XDG_DATA_HOME"
+      old_xdg_data_home="${XDG_DATA_HOME:-}"
       export XDG_DATA_HOME="$test_dir"
     }
 
