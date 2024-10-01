@@ -32,10 +32,10 @@
       [s]how [name] - Show password for an entry.
 
     env vars:
-      Password dir:     export PA_DIR=~/.local/share/pa/passwords
-      Password length:  export PA_LENGTH=50
-      Password pattern: export PA_PATTERN=A-Za-z0-9-_
-      Disable tracking: export PA_NOGIT=
+      password dir:     export PA_DIR=~/.local/share/pa/passwords
+      password length:  export PA_LENGTH=50
+      password pattern: export PA_PATTERN=A-Za-z0-9-_
+      disable tracking: export PA_NOGIT=
 
 
   command examples
