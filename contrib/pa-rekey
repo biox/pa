@@ -16,6 +16,9 @@ age=$(command -v age || command -v rage) ||
 age_keygen=$(command -v age-keygen || command -v rage-keygen) ||
     die "age-keygen not found, install per https://age-encryption.org"
 
+# Ensure that pipelines return status of the last failed command.
+set -o pipefail
+
 # Restrict permissions of any new files to only the current user.
 umask 077
 
@@ -46,8 +49,8 @@ $age_keygen >>"$tmpdir/identities" 2>/dev/null
 $age_keygen -y "$tmpdir/identities" >>"$tmpdir/recipients" 2>/dev/null
 
 pa l | while read -r name; do
-    pa s "$name" |
-        $age -R "$tmpdir/recipients" -o "$tmpdir/passwords/$name.age" ||
+    { pa s "$name" |
+        $age -R "$tmpdir/recipients" -o "$tmpdir/passwords/$name.age"; } ||
         die "Couldn't encrypt $name.age"
 done
 
