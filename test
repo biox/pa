@@ -34,7 +34,7 @@ printf 'y\n' | $pa add test 2>&1 >/dev/null ||
     printf "pa add should be capable of adding a test password\n"
 printf 'y\n' | $pa add nested/password 2>&1 |
     grep -q "Saved 'nested/password' to the store." ||
-    printf 'pa add should say it stored nested/passworod\n'
+    printf 'pa add should say it stored nested/password\n'
 test -s test-stuff/passwords/nested/password.age ||
     printf 'pa add should create an encrypted password file\n'
 
