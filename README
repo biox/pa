@@ -27,6 +27,7 @@
       [a]dd  [name] - Add a password entry.
       [d]el  [name] - Delete a password entry.
       [e]dit [name] - Edit a password entry with vi.
+      [g]it  [cmd]  - Run git command in the password dir.
       [l]ist        - List all entries.
       [s]how [name] - Show password for an entry.
 
@@ -53,6 +54,12 @@
 
     $ pa del test
     Delete password 'test'? [y/N]: y
+
+    $ pa git log --oneline
+    bbe85dc (HEAD -> main) delete 'test'
+    b597c04 edit 'test'
+    cba20cc add 'test'
+    ef76f7e initial commit
 
 
   faq

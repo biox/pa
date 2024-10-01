@@ -179,6 +179,7 @@ usage() {
     [a]dd  [name] - Add a password entry.
     [d]el  [name] - Delete a password entry.
     [e]dit [name] - Edit a password entry with ${EDITOR:-vi}.
+    [g]it  [cmd]  - Run git command in the password dir.
     [l]ist        - List all entries.
     [s]how [name] - Show password for an entry.
 
@@ -197,14 +198,6 @@ main() {
 
     age_keygen=$(command -v age-keygen || command -v rage-keygen) ||
         die "age-keygen not found, install per https://age-encryption.org"
-
-    command=$1
-
-    # Combine the rest of positional arguments into
-    # a name and remove control characters from it
-    # so that a name can always be safely displayed.
-    shift
-    name=$(printf %s "$*" | LC_ALL=C tr -d '[:cntrl:]')
 
     basedir=${XDG_DATA_HOME:=$HOME/.local/share}/pa
     : "${PA_DIR:=$basedir/passwords}"
@@ -246,6 +239,19 @@ main() {
 
         git_add_and_commit . "initial commit"
     }
+
+    command=$1
+    shift
+
+    glob "$command" 'g*' && {
+        git "$@"
+        exit $?
+    }
+
+    # Combine the rest of positional arguments into
+    # a name and remove control characters from it
+    # so that a name can always be safely displayed.
+    name=$(printf %s "$*" | LC_ALL=C tr -d '[:cntrl:]')
 
     glob "$command" '[ades]*' && [ -z "$name" ] &&
         die "Missing [name] argument"
