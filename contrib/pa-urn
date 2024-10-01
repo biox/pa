@@ -40,31 +40,31 @@ basedir=${XDG_DATA_HOME:=$HOME/.local/share}/pa
 : "${PA_DIR:=$basedir/passwords}"
 
 dir=$(realpath "$PA_DIR") ||
-    die "Couldn't get path to password directory"
+    die "couldn't get path to password directory"
 
 name=$(basename "$dir")
 if [ "$2" ]; then
     urn=$(realpath -- "$2") ||
-        die "Couldn't get path to file '$2'"
+        die "couldn't get path to file '$2'"
 else
     urn=$(pwd)/$name.tar.age ||
-        die "Couldn't get working directory"
+        die "couldn't get working directory"
 fi
 
 cd "$(dirname "$dir")" ||
-    die "Couldn't change to parent of password directory"
+    die "couldn't change to parent of password directory"
 
 case $1 in
 c*)
     { create_tar "$name" | $age -R "$basedir/recipients" -o "$urn"; } &&
-        printf '%s\n' "Store has been archived into $urn"
+        printf '%s\n' "store has been archived into $urn"
     ;;
 o*)
     [ -f "$urn" ] ||
-        die "File '$urn' doesn't exist"
+        die "file '$urn' doesn't exist"
 
     { $age --decrypt -i "$basedir/identities" "$urn" | extract_tar; } &&
-        printf '%s\n' "File has been extracted into $PA_DIR"
+        printf '%s\n' "file has been extracted into $PA_DIR"
     ;;
 *) usage ;;
 esac

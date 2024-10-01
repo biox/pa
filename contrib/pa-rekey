@@ -23,18 +23,18 @@ basedir=${XDG_DATA_HOME:=$HOME/.local/share}/pa
 : "${PA_DIR:=$basedir/passwords}"
 
 realstore=$(realpath "$PA_DIR") ||
-    die "Couldn't get path to password directory"
+    die "couldn't get path to password directory"
 
 tmpdir=$basedir/tmp
 
 mkdir "$tmpdir" ||
-    die "Couldn't create temporary directory"
+    die "couldn't create temporary directory"
 
 trap 'rm -rf "$tmpdir"; exit' EXIT
 trap 'rm -rf "$tmpdir"; trap - INT; kill -s INT 0' INT
 
 cp -Rp "$realstore" "$tmpdir/passwords" ||
-    die "Couldn't copy password directory"
+    die "couldn't copy password directory"
 
 # Remove git repository for forward secrecy.
 rm -rf "$tmpdir/passwords/.git"
@@ -48,13 +48,13 @@ $age_keygen -y "$tmpdir/identities" >>"$tmpdir/recipients" 2>/dev/null
 pa l | while read -r name; do
     pa s "$name" |
         $age -R "$tmpdir/recipients" -o "$tmpdir/passwords/$name.age" ||
-        die "Couldn't encrypt $name.age"
+        die "couldn't encrypt $name.age"
 done
 
 trap - INT EXIT
 
 rm -rf "$realstore" ||
-    die "Couldn't remove password directory"
+    die "couldn't remove password directory"
 
 mv "$tmpdir/passwords" "$realstore"
 mv "$tmpdir/identities" "$(realpath "$basedir/identities")"
