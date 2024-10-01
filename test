@@ -2,8 +2,6 @@
 #
 # test - a pa test script
 
-export pa="$(pwd)/pa"
-
 export PA_DIR=test-stuff/passwords
 
 # clean up previous run
@@ -14,11 +12,11 @@ export PA_DIR=test-stuff/passwords
 rm -rf test-stuff
 
 # pa welcomes you
-$pa | grep -q "a simple password manager" ||
+./pa | grep -q "a simple password manager" ||
     printf "pa should print a welcome message\n"
 
 # generate pa dirs/identityfile/recipientfile
-$pa list
+./pa list
 
 # pa auto-generated files are correct
 test -s test-stuff/identities ||
@@ -30,19 +28,18 @@ test -d "$PA_DIR/.git" ||
 # TODO: ensure git author/email are set correctly, etc
 
 # pa add
-printf 'y' | $pa add test 2>&1 >/dev/null ||
+printf 'y' | ./pa add test 2>&1 >/dev/null ||
     printf "pa add should be capable of adding a test password\n"
-printf 'y' | $pa add nested/password 2>&1 |
+printf 'y' | ./pa add nested/password 2>&1 |
     grep -q "Saved 'nested/password' to the store." ||
     printf 'pa add should say it stored nested/password\n'
 test -s test-stuff/passwords/nested/password.age ||
     printf 'pa add should create an encrypted password file\n'
 
 # pa list
-$pa list | grep -q test ||
+./pa list | grep -q test ||
     printf "pa list should list the test password\n"
 
 # ensure git commits are working
-cd test-stuff/passwords/
-git log | grep -q "add 'nested/password'" ||
+git -C test-stuff/passwords log | grep -q "add 'nested/password'" ||
     printf "git log should have line: add 'nested/password'\n"
