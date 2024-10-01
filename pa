@@ -3,28 +3,28 @@
 # pa - a simple password manager
 
 pw_add() {
-    if yn "Generate a password?"; then
+    if yn "generate a password?"; then
         pass=$(rand_chars "${PA_LENGTH:-50}" "${PA_PATTERN:-A-Za-z0-9-_}") ||
-            die "Couldn't generate a password"
+            die "couldn't generate a password"
     else
         # 'sread()' is a simple wrapper function around 'read'
         # to prevent user input from being printed to the terminal.
-        sread pass "Enter a password"
+        sread pass "enter a password"
 
         [ "$pass" ] ||
-            die "Password can't be empty"
+            die "password can't be empty"
 
-        sread pass2 "Enter a password (again)"
+        sread pass2 "enter a password (again)"
 
         # Disable this check as we dynamically populate the two
         # passwords using the 'sread()' function.
         # shellcheck disable=2154
         [ "$pass" = "$pass2" ] ||
-            die "Passwords don't match"
+            die "passwords don't match"
     fi
 
     mkdir -p "$(dirname "./$name")" ||
-        die "Couldn't create category '$(dirname "./$name" | cut -c3-)'"
+        die "couldn't create category '$(dirname "./$name" | cut -c3-)'"
 
     # Use 'age' to store the password in an encrypted file.
     # A heredoc is used here instead of a 'printf' to avoid
@@ -36,11 +36,11 @@ pw_add() {
     $age --encrypt -R "$recipients_file" -o "./$name.age" <<-EOF ||
 		$pass
 	EOF
-        die "Couldn't encrypt $name.age"
+        die "couldn't encrypt $name.age"
 
-    printf '%s\n' "Saved '$name' to the store."
+    printf '%s\n' "saved '$name' to the store."
 
-    git_add_and_commit "./$name.age" "add '$name'"
+    $git_enabled && git_add_and_commit "./$name.age" "add '$name'"
 }
 
 pw_edit() {
@@ -54,13 +54,13 @@ pw_edit() {
     [ -w /dev/shm ] || tmpdir=/tmp
 
     tmpfile=$(printf 'mkstemp(%s/pa.XXXXXX)' $tmpdir | m4) ||
-        die "Couldn't create a shared memory file"
+        die "couldn't create a shared memory file"
 
     trap 'rm -f "$tmpfile"' EXIT
 
     if [ ! -f "$name.age" ]; then new=true; else new=false && {
         $age --decrypt -i "$identities_file" -o "$tmpfile" "./$name.age" ||
-            die "Couldn't decrypt $name.age"
+            die "couldn't decrypt $name.age"
     }; fi
 
     ${EDITOR:-vi} "$tmpfile" ||
@@ -68,30 +68,30 @@ pw_edit() {
 
     [ -s "$tmpfile" ] && {
         mkdir -p "$(dirname "./$name")" ||
-            die "Couldn't create category '$(dirname "./$name" | cut -c3-)'"
+            die "couldn't create category '$(dirname "./$name" | cut -c3-)'"
 
         $age --encrypt -R "$recipients_file" -o "./$name.age" "$tmpfile" ||
-            die "Couldn't encrypt $name.age"
+            die "couldn't encrypt $name.age"
 
-        if $new; then printf '%s\n' "Saved '$name' to the store."; fi
+        if $new; then printf '%s\n' "saved '$name' to the store."; fi
 
-        git_add_and_commit "./$name.age" "edit '$name'"
+        $git_enabled && git_add_and_commit "./$name.age" "edit '$name'"
     }
 }
 
 pw_del() {
-    yn "Delete password '$name'?" && {
+    yn "delete password '$name'?" && {
         rm -f "./$name.age"
 
         rmdir -p "$(dirname "./$name")" 2>/dev/null || :
 
-        git_add_and_commit "./$name.age" "delete '$name'"
+        $git_enabled && git_add_and_commit "./$name.age" "delete '$name'"
     }
 }
 
 pw_show() {
     $age --decrypt -i "$identities_file" "./$name.age" ||
-        die "Couldn't decrypt $name.age"
+        die "couldn't decrypt $name.age"
 }
 
 pw_list() {
@@ -99,7 +99,11 @@ pw_list() {
 }
 
 git_add_and_commit() {
-    if $git_enabled; then git add "$1" && git commit -qm "$2"; fi
+    git add "$1" ||
+        die "couldn't git add $1"
+
+    git commit -qm "$2" ||
+        die "couldn't git commit $2"
 }
 
 rand_chars() {
@@ -184,10 +188,10 @@ usage() {
     [s]how [name] - Show password for an entry.
 
   env vars:
-    Password dir:     export PA_DIR=~/.local/share/pa/passwords
-    Password length:  export PA_LENGTH=50
-    Password pattern: export PA_PATTERN=A-Za-z0-9-_
-    Disable tracking: export PA_NOGIT=
+    password dir:     export PA_DIR=~/.local/share/pa/passwords
+    password length:  export PA_LENGTH=50
+    password pattern: export PA_PATTERN=A-Za-z0-9-_
+    disable tracking: export PA_NOGIT=
 "
     exit 0
 }
@@ -205,10 +209,10 @@ main() {
     recipients_file=$basedir/recipients
 
     mkdir -p "$basedir" "$PA_DIR" ||
-        die "Couldn't create pa directories"
+        die "couldn't create pa directories"
 
     cd "$PA_DIR" ||
-        die "Couldn't change to password directory"
+        die "couldn't change to password directory"
 
     # Move any passwords hanging out in the old dir
     # for backwards-compat reasons
@@ -254,19 +258,19 @@ main() {
     name=$(printf %s "$*" | LC_ALL=C tr -d '[:cntrl:]')
 
     glob "$command" '[ades]*' && [ -z "$name" ] &&
-        die "Missing [name] argument"
+        die "missing [name] argument"
 
     glob "$name" '/*' || glob "$name" '*/' &&
-        die "Name can't start or end with '/'"
+        die "name can't start or end with '/'"
 
     glob "$name" '../*' || glob "$name" '*/../*' &&
-        die "Category went out of bounds"
+        die "category went out of bounds"
 
     glob "$command" 'a*' && [ -f "$name.age" ] &&
-        die "Password '$name' already exists"
+        die "password '$name' already exists"
 
     glob "$command" '[ds]*' && [ ! -f "$name.age" ] &&
-        die "Password '$name' doesn't exist"
+        die "password '$name' doesn't exist"
 
     # First, copy any existing identities files from the old
     # storage location to the new one for backwards compat.
