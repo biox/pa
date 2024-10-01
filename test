@@ -21,8 +21,10 @@ rm -rf test-stuff
 # pa auto-generated files are correct
 test -s test-stuff/identities ||
     printf "an identities file should exist\n"
+
 test -s test-stuff/recipients ||
     printf "a recipients file should exist\n"
+
 test -d "$PA_DIR/.git" ||
     printf "git dir should exist\n"
 # TODO: ensure git author/email are set correctly, etc
@@ -30,15 +32,22 @@ test -d "$PA_DIR/.git" ||
 # pa add
 printf 'y' | ./pa add test 2>&1 >/dev/null ||
     printf "pa add should be capable of adding a test password\n"
-printf 'y' | ./pa add nested/password 2>&1 |
-    grep -q "Saved 'nested/password' to the store." ||
+
+test "$(printf y | $pa add nested/password 2>&1)" = "\
+Generate a password? [y/N]: y
+Saved 'nested/password' to the store." ||
     printf 'pa add should say it stored nested/password\n'
+
 test -s test-stuff/passwords/nested/password.age ||
     printf 'pa add should create an encrypted password file\n'
 
 # pa list
 ./pa list | grep -q test ||
     printf "pa list should list the test password\n"
+
+test "$(./pa list)" = "nested/password
+test" ||
+    printf 'pa list output should match example\n'
 
 # ensure git commits are working
 git -C test-stuff/passwords log | grep -q "add 'nested/password'" ||
