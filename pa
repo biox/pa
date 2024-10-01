@@ -40,7 +40,7 @@ pw_add() {
 
     printf '%s\n' "Saved '$name' to the store."
 
-    git_add_and_commit "./$name.age" "add '$name'"
+    $git_enabled && git_add_and_commit "./$name.age" "add '$name'"
 }
 
 pw_edit() {
@@ -75,7 +75,7 @@ pw_edit() {
 
         if $new; then printf '%s\n' "Saved '$name' to the store."; fi
 
-        git_add_and_commit "./$name.age" "edit '$name'"
+        $git_enabled && git_add_and_commit "./$name.age" "edit '$name'"
     }
 }
 
@@ -85,7 +85,7 @@ pw_del() {
 
         rmdir -p "$(dirname "./$name")" 2>/dev/null || :
 
-        git_add_and_commit "./$name.age" "delete '$name'"
+        $git_enabled && git_add_and_commit "./$name.age" "delete '$name'"
     }
 }
 
@@ -99,7 +99,11 @@ pw_list() {
 }
 
 git_add_and_commit() {
-    if $git_enabled; then git add "$1" && git commit -qm "$2"; fi
+    git add "$1" ||
+        die "couldn't git add $1"
+
+    git commit -qm "$2" ||
+        die "couldn't git commit $2"
 }
 
 rand_chars() {
