@@ -203,7 +203,7 @@ main() {
     age_keygen=$(command -v age-keygen || command -v rage-keygen) ||
         die "age-keygen not found, install per https://age-encryption.org"
 
-    echo "$PA_DIR" | grep -q '^/' ||
+    glob "$PA_DIR" '/*' ||
         die "PA_DIR must be an absolute path (got '$PA_DIR')"
 
     basedir="${PA_DIR:=$HOME/.local/share/pa}"
