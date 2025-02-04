@@ -40,8 +40,8 @@ printf 'y' | ./pa add test 2>&1 >/dev/null ||
     fail "pa add should be capable of adding a test password"
 
 test "$(printf y | ./pa add nested/password 2>&1)" = "\
-Generate a password? [y/N]: y
-Saved 'nested/password' to the store." ||
+generate a password? [y/N]: y
+saved 'nested/password' to the store." ||
     fail "pa add should say it stored nested/password"
 
 test -s test-stuff/passwords/nested/password.age ||
