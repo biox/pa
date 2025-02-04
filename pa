@@ -206,14 +206,14 @@ main() {
     glob "$PA_DIR" '/*' ||
         die "PA_DIR must be an absolute path (got '$PA_DIR')"
 
-    basedir="${PA_DIR:=${XDG_DATA_HOME:-$HOME/.local/share}/pa}"
-    identities_file=$basedir/identities
-    recipients_file=$basedir/recipients
+    : "${PA_DIR:=${XDG_DATA_HOME:-$HOME/.local/share}/pa}"
+    identities_file=$PA_DIR/identities
+    recipients_file=$PA_DIR/recipients
 
-    mkdir -p "$basedir/passwords" ||
+    mkdir -p "$PA_DIR/passwords" ||
         die "couldn't create pa directories"
 
-    cd "$basedir/passwords" ||
+    cd "$PA_DIR/passwords" ||
         die "couldn't change to password directory"
 
     # Ensure that globbing is disabled
