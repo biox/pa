@@ -8,14 +8,14 @@ fail() {
     failures=$((failures + 1))
 }
 
-export PA_DIR=test-stuff/passwords
+export PA_DIR=/tmp/pa-test
 
 # clean up previous run
 # (the previous state is left around
 # intentionally, in case the dev
 # wants to poke around)
 # that's why we don't clean up on exit
-rm -rf test-stuff
+rm -rf /tmp/pa-test
 
 # pa welcomes you
 ./pa | grep -q "a simple password manager" ||
@@ -25,13 +25,13 @@ rm -rf test-stuff
 ./pa list
 
 # pa auto-generated files are correct
-test -s test-stuff/identities ||
+test -s "$PA_DIR/identities" ||
     fail "an identities file should exist"
 
-test -s test-stuff/recipients ||
+test -s "$PA_DIR/recipients" ||
     fail "a recipients file should exist"
 
-test -d "$PA_DIR/.git" ||
+test -d "$PA_DIR/passwords/.git" ||
     fail "git dir should exist"
 # TODO: ensure git author/email are set correctly, etc
 
@@ -44,7 +44,7 @@ generate a password? [y/N]: y
 saved 'nested/password' to the store." ||
     fail "pa add should say it stored nested/password"
 
-test -s test-stuff/passwords/nested/password.age ||
+test -s "$PA_DIR/passwords/nested/password.age" ||
     fail "pa add should create an encrypted password file"
 
 # pa list
@@ -56,7 +56,7 @@ test" ||
     fail "pa list output should match example"
 
 # ensure git commits are working
-git -C test-stuff/passwords log | grep -q "add 'nested/password'" ||
+git -C "$PA_DIR/passwords" log | grep -q "add 'nested/password'" ||
     fail "git log should have line: add 'nested/password'"
 
 # print info & exit w/ correct status
