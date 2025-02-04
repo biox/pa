@@ -210,7 +210,7 @@ main() {
     identities_file=$basedir/identities
     recipients_file=$basedir/recipients
 
-    mkdir -p "$basedir" "$basedir/passwords" ||
+    mkdir -p "$basedir/passwords" ||
         die "couldn't create pa directories"
 
     cd "$basedir/passwords" ||
