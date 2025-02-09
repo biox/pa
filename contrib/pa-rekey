@@ -19,13 +19,12 @@ age_keygen=$(command -v age-keygen || command -v rage-keygen) ||
 # Restrict permissions of any new files to only the current user.
 umask 077
 
-basedir=${XDG_DATA_HOME:=$HOME/.local/share}/pa
-: "${PA_DIR:=$basedir/passwords}"
+: "${PA_DIR:=${XDG_DATA_HOME:-$HOME/.local/share}/pa}"
 
-realstore=$(realpath "$PA_DIR") ||
+realstore=$(realpath "$PA_DIR/passwords") ||
     die "couldn't get path to password directory"
 
-tmpdir=$basedir/tmp
+tmpdir=$PA_DIR/tmp
 
 mkdir "$tmpdir" ||
     die "couldn't create temporary directory"
@@ -57,8 +56,8 @@ rm -rf "$realstore" ||
     die "couldn't remove password directory"
 
 mv "$tmpdir/passwords" "$realstore"
-mv "$tmpdir/identities" "$(realpath "$basedir/identities")"
-mv "$tmpdir/recipients" "$(realpath "$basedir/recipients")"
+mv "$tmpdir/identities" "$(realpath "$PA_DIR/identities")"
+mv "$tmpdir/recipients" "$(realpath "$PA_DIR/recipients")"
 rmdir "$tmpdir"
 
 # Recreate git repository if needed.

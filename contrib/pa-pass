@@ -6,8 +6,7 @@
 # password dir of pa:   export PA_DIR=~/.local/share/pa/passwords
 
 : "${PASSWORD_STORE_DIR:=$HOME/.password-store}"
-basedir=${XDG_DATA_HOME:=$HOME/.local/share}/pa
-: "${PA_DIR:=$basedir/passwords}"
+: "${PA_DIR:=${XDG_DATA_HOME:-$HOME/.local/share}/pa}"
 
 # Create pa store if it doesn't exist.
 pa l >/dev/null || exit
@@ -16,12 +15,13 @@ age=$(command -v age || command -v rage)
 
 find "$PASSWORD_STORE_DIR" -name '*.gpg' | while read -r passfile; do
     name=$(printf %s "${passfile#"$PASSWORD_STORE_DIR/"}" | sed 's/\.gpg$//')
-    mkdir -p "$PA_DIR/$(dirname "./$name")"
+    mkdir -p "$PA_DIR/passwords/$(dirname "./$name")"
     gpg2 -d "$passfile" |
-        $age -R "$basedir/recipients" -o "$PA_DIR/$name.age" &&
+        $age -R "$PA_DIR/recipients" -o "$PA_DIR/passwords/$name.age" &&
         printf '%s\n' "saved '$name' to the store."
 done
 
 if [ -z "${PA_NOGIT+x}" ] && command -v git >/dev/null 2>&1; then
-    git -C "$PA_DIR" add . && git -C "$PA_DIR" commit -m "migrate from pass"
+    git -C "$PA_DIR/passwords" add .
+    git -C "$PA_DIR/passwords" commit -m "migrate from pass"
 fi

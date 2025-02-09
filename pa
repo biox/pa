@@ -203,10 +203,11 @@ main() {
     age_keygen=$(command -v age-keygen || command -v rage-keygen) ||
         die "age-keygen not found, install per https://age-encryption.org"
 
+    : "${PA_DIR:=${XDG_DATA_HOME:-$HOME/.local/share}/pa}"
+
     glob "$PA_DIR" '/*' ||
         die "PA_DIR must be an absolute path (got '$PA_DIR')"
 
-    : "${PA_DIR:=${XDG_DATA_HOME:-$HOME/.local/share}/pa}"
     identities_file=$PA_DIR/identities
     recipients_file=$PA_DIR/recipients
 
