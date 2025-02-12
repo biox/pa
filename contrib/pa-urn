@@ -36,10 +36,9 @@ set -o pipefail
 age=$(command -v age || command -v rage) ||
     die "age not found, install per https://age-encryption.org"
 
-basedir=${XDG_DATA_HOME:=$HOME/.local/share}/pa
-: "${PA_DIR:=$basedir/passwords}"
+: "${PA_DIR:=${XDG_DATA_HOME:-$HOME/.local/share}/pa}"
 
-dir=$(realpath "$PA_DIR") ||
+dir=$(realpath "$PA_DIR/passwords") ||
     die "couldn't get path to password directory"
 
 name=$(basename "$dir")
@@ -56,15 +55,15 @@ cd "$(dirname "$dir")" ||
 
 case $1 in
 c*)
-    { create_tar "$name" | $age -R "$basedir/recipients" -o "$urn"; } &&
+    { create_tar "$name" | $age -R "$PA_DIR/recipients" -o "$urn"; } &&
         printf '%s\n' "store has been archived into $urn"
     ;;
 o*)
     [ -f "$urn" ] ||
         die "file '$urn' doesn't exist"
 
-    { $age --decrypt -i "$basedir/identities" "$urn" | extract_tar; } &&
-        printf '%s\n' "file has been extracted into $PA_DIR"
+    { $age --decrypt -i "$PA_DIR/identities" "$urn" | extract_tar; } &&
+        printf '%s\n' "file has been extracted into $PA_DIR/passwords"
     ;;
 *) usage ;;
 esac

@@ -32,7 +32,7 @@
       [s]how [name] - Show password for an entry.
 
     env vars:
-      password dir:     export PA_DIR=~/.local/share/pa/passwords
+      data directory:   export PA_DIR=~/.local/share/pa/passwords
       password length:  export PA_LENGTH=50
       password pattern: export PA_PATTERN=A-Za-z0-9-_
       disable tracking: export PA_NOGIT=
@@ -40,8 +40,8 @@
 
   command examples
     $ pa add test
-    Generate a password? [y/N]: y
-    Saved 'test' to the store.
+    generate a password? [y/N]: y
+    saved 'test' to the store.
 
     $ pa list
     test
@@ -53,7 +53,7 @@
     <opens $EDITOR or vi>
 
     $ pa del test
-    Delete password 'test'? [y/N]: y
+    delete password 'test'? [y/N]: y
 
     $ pa git log --oneline
     bbe85dc (HEAD -> main) delete 'test'
