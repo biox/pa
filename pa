@@ -106,26 +106,6 @@ git_add_and_commit() {
         die "couldn't git commit $2"
 }
 
-yubikey_age_init() {
-    prompt='age-plugin-yubikey detected: generate an identity/receipient w/ yubikey?'
-
-    if command -v age-plugin-yubikey >/dev/null 2>&1; then
-        [ ! -f "$identities_file" ] && [ ! -f "$recipients_file" ] && {
-            yn "$prompt" && {
-                age-plugin-yubikey \
-                    --generate \
-                    --name "pa identity" \
-                    --pin-policy never \
-                    --touch-policy always >"$identities_file" ||
-                    die 'failed to generate YubiKey identity file'
-                age-plugin-yubikey -l > "$recipients_file" ||
-                    die 'failed to generate YubiKey recipients file'
-            	printf '%s\n' 'YubiKey identity and recipient files generated.'
-            }
-        }
-    fi
-}
-
 rand_chars() {
     # Generate random characters by reading '/dev/urandom' with the
     # 'tr' command to translate the random bytes into a
@@ -291,7 +271,21 @@ main() {
     glob "$command" '[ds]*' && [ ! -f "$name.age" ] &&
         die "password '$name' doesn't exist"
 
-    yubikey_age_init
+    if command -v age-plugin-yubikey >/dev/null 2>&1; then
+        [ ! -f "$identities_file" ] && [ ! -f "$recipients_file" ] && {
+            yn "generate yubikey identity?" && {
+                age-plugin-yubikey \
+                    --generate \
+                    --name "pa identity" \
+                    --pin-policy never \
+                    --touch-policy always >"$identities_file" ||
+                    die 'failed to generate YubiKey identity file'
+
+                age-plugin-yubikey -l > "$recipients_file" ||
+                    die 'failed to generate YubiKey recipients file'
+            }
+        }
+    fi
 
     [ -f "$identities_file" ] ||
         $age_keygen -o "$identities_file" 2>/dev/null
