@@ -271,6 +271,22 @@ main() {
     glob "$command" '[ds]*' && [ ! -f "$name.age" ] &&
         die "password '$name' doesn't exist"
 
+    if command -v age-plugin-yubikey >/dev/null 2>&1; then
+        [ ! -f "$identities_file" ] && [ ! -f "$recipients_file" ] && {
+            yn "generate yubikey identity?" && {
+                age-plugin-yubikey \
+                    --generate \
+                    --name "pa identity" \
+                    --pin-policy never \
+                    --touch-policy always >"$identities_file" ||
+                    die 'failed to generate YubiKey identity file'
+
+                age-plugin-yubikey -l > "$recipients_file" ||
+                    die 'failed to generate YubiKey recipients file'
+            }
+        }
+    fi
+
     [ -f "$identities_file" ] ||
         $age_keygen -o "$identities_file" 2>/dev/null
 
