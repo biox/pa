@@ -4,18 +4,19 @@
 
   features
     - encryption implemented using age[1]
-    - automatic key generation
+    - automatic key generation with yubikey support
     - automatic git tracking
     - multiple identity/recipient support
     - written in portable posix shell
     - simple to extend
-    - only ~160 lines of code
+    - only ~220 lines of code
     - pronounced "pah" - as in "papa"
 
 
   dependencies
     - age
     - age-keygen
+    - age-plugin-yubikey (optional)
     - git (optional)
 
 

@@ -44,16 +44,7 @@ pw_add() {
 }
 
 pw_edit() {
-    # Prefer /dev/shm because it's an in-memory
-    # space that we can use to store data without
-    # having bits laying around in sectors.
-    tmpdir=/dev/shm
-    # Fall back to /tmp - /dev/shm is Linux-only & /tmp
-    # and shared memory space on other operating systems
-    # have non-standard methods of setup/access.
-    [ -w /dev/shm ] || tmpdir=/tmp
-
-    tmpfile=$(printf 'mkstemp(%s/pa.XXXXXX)' $tmpdir | m4) ||
+    tmpfile=$(mkstemp) ||
         die "couldn't create a shared memory file"
 
     trap 'rm -f "$tmpfile"' EXIT
@@ -104,6 +95,19 @@ git_add_and_commit() {
 
     git commit -qm "$2" ||
         die "couldn't git commit $2"
+}
+
+mkstemp() {
+    # Prefer /dev/shm because it's an in-memory
+    # space that we can use to store data without
+    # having bits laying around in sectors.
+    tmpdir=/dev/shm
+    # Fall back to /tmp - /dev/shm is Linux-only & /tmp
+    # and shared memory space on other operating systems
+    # have non-standard methods of setup/access.
+    [ -w /dev/shm ] || tmpdir=/tmp
+
+    printf 'mkstemp(%s/pa.XXXXXX)' $tmpdir | m4
 }
 
 rand_chars() {
@@ -208,24 +212,96 @@ main() {
     glob "$PA_DIR" '/*' ||
         die "PA_DIR must be an absolute path (got '$PA_DIR')"
 
+    store=$PA_DIR/passwords
     identities_file=$PA_DIR/identities
     recipients_file=$PA_DIR/recipients
+    recipients_sync=$store/.recipients
 
-    mkdir -p "$PA_DIR/passwords" ||
+    mkdir -p "$store" ||
         die "couldn't create pa directories"
 
-    cd "$PA_DIR/passwords" ||
+    cd "$store" ||
         die "couldn't change to password directory"
 
-    # Ensure that globbing is disabled
-    # to avoid insecurities with word-splitting.
-    set -f
+    # Ensure that we leave the terminal in a usable state on Ctrl+C.
+    [ -t 0 ] && trap 'stty echo icanon; trap - INT; kill -s INT 0' INT
+
+    [ -f "$identities_file" ] ||
+        if command -v age-plugin-yubikey >/dev/null &&
+            yn "generate yubikey identity?"; then
+            # Touch policy of generated keys defaults to 'always'.
+            age-plugin-yubikey -g --name "pa identity" --pin-policy never |
+                tee "$identities_file" |
+                sed -n 's/^# *Recipient: //p' >>"$recipients_file"
+        else
+            $age_keygen -o "$identities_file" 2>/dev/null &&
+                $age_keygen -y "$identities_file" >>"$recipients_file"
+        fi ||
+        die 'failed to generate key pair'
+
+    [ -f "$recipients_file" ] ||
+        if grep -q ^AGE-PLUGIN-YUBIKEY- "$identities_file"; then
+            # Find recipients for all YubiKey keys named 'pa identity'.
+            program='/^# *Name: pa identity$/{f=1}!/^#/&&f{print;f=0}'
+
+            command -v age-plugin-yubikey >/dev/null && age-plugin-yubikey -l |
+                awk "$program" >"$recipients_file"
+        else
+            $age_keygen -y -o "$recipients_file" "$identities_file" 2>/dev/null
+        fi ||
+        die 'failed to generate recipients'
 
     git_enabled=false
-    [ -z "${PA_NOGIT+x}" ] && command -v git >/dev/null 2>&1 && git_enabled=true
+    [ -z "${PA_NOGIT+x}" ] && command -v git >/dev/null && git_enabled=true
+
+    if [ ! -f "$recipients_sync" ]; then
+        cp "$recipients_file" "$recipients_sync"
+    elif ! cmp -s "$recipients_file" "$recipients_sync"; then
+        need_rekey=false
+
+        tmpfile=$(mkstemp) ||
+            die "couldn't create a shared memory file"
+
+        # Compare recipients files and transfer new locally added recipients.
+        # Temporary files are used to prevent read and write race condition.
+        grep -Fxvf "$recipients_sync" "$recipients_file" >"$tmpfile" && {
+            cat "$tmpfile" >>"$recipients_sync"
+
+            rm -f "$tmpfile"
+
+            need_rekey=true
+        }
+
+        grep -Fxvf "$recipients_file" "$recipients_sync" &&
+            if yn "add these new recipients?"; then
+                cp "$recipients_sync" "$recipients_file"
+            else
+                cp "$recipients_file" "$recipients_sync"
+
+                # Purge git repository to prevent leaks for unwanted recipients.
+                [ -d .git ] && find .git ! -name config -type f -exec rm -f {} +
+
+                need_rekey=true
+            fi
+
+        if $need_rekey; then
+            pw_list | while read -r name; do
+                tmpfile=$(mkstemp) ||
+                    die "couldn't create a shared memory file"
+
+                pw_show | $age -R "$recipients_file" -o "$tmpfile" ||
+                    die "couldn't encrypt $name.age"
+
+                mv "$tmpfile" "$store/$name.age"
+            done
+
+            $git_enabled && git init -q && git_add_and_commit . "rekey"
+        fi
+    fi
 
     $git_enabled && [ ! -d .git ] && {
         git init -q
+        git config pull.rebase true
 
         # Put something in user config if it's not set globally,
         # because git doesn't allow to commit without it.
@@ -271,31 +347,6 @@ main() {
     glob "$command" '[ds]*' && [ ! -f "$name.age" ] &&
         die "password '$name' doesn't exist"
 
-    if command -v age-plugin-yubikey >/dev/null 2>&1; then
-        [ ! -f "$identities_file" ] && [ ! -f "$recipients_file" ] && {
-            yn "generate yubikey identity?" && {
-                age-plugin-yubikey \
-                    --generate \
-                    --name "pa identity" \
-                    --pin-policy never \
-                    --touch-policy always >"$identities_file" ||
-                    die 'failed to generate YubiKey identity file'
-
-                age-plugin-yubikey -l > "$recipients_file" ||
-                    die 'failed to generate YubiKey recipients file'
-            }
-        }
-    fi
-
-    [ -f "$identities_file" ] ||
-        $age_keygen -o "$identities_file" 2>/dev/null
-
-    [ -f "$recipients_file" ] ||
-        $age_keygen -y -o "$recipients_file" "$identities_file" 2>/dev/null
-
-    # Ensure that we leave the terminal in a usable state on Ctrl+C.
-    [ -t 0 ] && trap 'stty echo icanon; trap - INT; kill -s INT 0' INT
-
     case $command in
     a*) pw_add ;;
     d*) pw_del ;;
@@ -309,6 +360,10 @@ main() {
 # Ensure that debug mode is never enabled to
 # prevent the password from leaking.
 set +x
+
+# Ensure that globbing is disabled
+# to avoid insecurities with word-splitting.
+set -f
 
 # Restrict permissions of any new files to
 # only the current user.
