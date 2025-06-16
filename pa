@@ -53,8 +53,10 @@ pw_edit() {
     # have non-standard methods of setup/access.
     [ -w /dev/shm ] || tmpdir=/tmp
 
-    tmpfile=$(printf 'mkstemp(%s/pa.XXXXXX)' $tmpdir | m4) ||
-        die "couldn't create a shared memory file"
+    # Reimplement mktemp here, because
+    # mktemp isn't defined in POSIX.
+    tmpfile=$tmpdir/pa.$(rand_chars 10 'A-Za-z0-9') ||
+        die "couldn't generate random characters"
 
     trap 'rm -f "$tmpfile"' EXIT
 
