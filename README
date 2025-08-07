@@ -16,6 +16,7 @@
   dependencies
     - age
     - age-keygen
+    - copy utility
     - git (optional)
 
 
@@ -30,6 +31,7 @@
       [g]it  [cmd]  - Run git command in the password dir.
       [l]ist        - List all entries.
       [s]how [name] - Show password for an entry.
+      [c]opy [name] - Copy password to clipboard.
 
     env vars:
       data directory:   export PA_DIR=~/.local/share/pa/passwords
@@ -48,6 +50,9 @@
 
     $ pa show test
     vJwKuEBtxBVvdR-xppTdfofIei0oLlkoSK4OCSP2bMEBsP6ahM
+
+    $ pa copy test
+    $ # Now "test" password in your clipboard
 
     $ pa edit test
     <opens $EDITOR or vi>

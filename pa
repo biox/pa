@@ -96,6 +96,28 @@ pw_show() {
         die "couldn't decrypt $name.age"
 }
 
+pw_copy() {
+    local decrypted_password
+    decrypted_password=$($age --decrypt -i "$identities_file" "./$name.age" ||
+        die "couldn't decrypt $name.age")
+
+    if [[ -f /proc/version ]] && grep -iq Microsoft /proc/version; then
+        echo -n "$decrypted_password" | /mnt/c/Windows/System32/clip.exe
+    elif [[ $(uname -s) == "Darwin" ]]; then
+        echo -n "$decrypted_password" | pbcopy
+    elif [[ $(uname -s) == "CYGWIN" ]]; then
+        echo -n "$decrypted_password" > /dev/clipboard
+    elif command -v wl-copy &> /dev/null; then
+        echo -n "$decrypted_password" | wl-copy
+    elif command -v xclip &> /dev/null; then
+        echo -n "$decrypted_password" | xclip -sel clip
+    elif command -v xsel &> /dev/null; then
+        echo -n "$decrypted_password" | xsel --clipboard
+    else
+        die "no copy utility found, please install it"
+    fi
+}
+
 pw_list() {
     find . -type f -name \*.age | sed 's/..//;s/\.age$//' | sort
 }
@@ -188,6 +210,7 @@ usage() {
     [g]it  [cmd]  - Run git command in the password dir.
     [l]ist        - List all entries.
     [s]how [name] - Show password for an entry.
+    [c]opy [name] - Copy password to clipboard.
 
   env vars:
     data directory:   export PA_DIR=~/.local/share/pa
@@ -258,7 +281,7 @@ main() {
     # so that a name can always be safely displayed.
     name=$(printf %s "$*" | LC_ALL=C tr -d '[:cntrl:]')
 
-    glob "$command" '[ades]*' && [ -z "$name" ] &&
+    glob "$command" '[adesc]*' && [ -z "$name" ] &&
         die "missing [name] argument"
 
     glob "$name" '/*' || glob "$name" '*/' &&
@@ -270,7 +293,7 @@ main() {
     glob "$command" 'a*' && [ -f "$name.age" ] &&
         die "password '$name' already exists"
 
-    glob "$command" '[ds]*' && [ ! -f "$name.age" ] &&
+    glob "$command" '[dsc]*' && [ ! -f "$name.age" ] &&
         die "password '$name' doesn't exist"
 
     if command -v age-plugin-yubikey >/dev/null 2>&1; then
@@ -304,6 +327,7 @@ main() {
     e*) pw_edit ;;
     l*) pw_list ;;
     s*) pw_show ;;
+    c*) pw_copy ;;
     *) usage ;;
     esac
 }
