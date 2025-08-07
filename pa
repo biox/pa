@@ -3,203 +3,209 @@
 # pa - a simple password manager
 
 pw_add() {
-    if yn "generate a password?"; then
-        pass=$(rand_chars "${PA_LENGTH:-50}" "${PA_PATTERN:-A-Za-z0-9-_}") ||
-            die "couldn't generate a password"
-    else
-        # 'sread()' is a simple wrapper function around 'read'
-        # to prevent user input from being printed to the terminal.
-        sread pass "enter a password"
+	if yn "generate a password?"; then
+		pass=$(rand_chars "${PA_LENGTH:-50}" "${PA_PATTERN:-A-Za-z0-9-_}") ||
+			die "couldn't generate a password"
+	else
+		# 'sread()' is a simple wrapper function around 'read'
+		# to prevent user input from being printed to the terminal.
+		sread pass "enter a password"
 
-        [ "$pass" ] ||
-            die "password can't be empty"
+		[ "$pass" ] ||
+			die "password can't be empty"
 
-        sread pass2 "enter a password (again)"
+		sread pass2 "enter a password (again)"
 
-        # Disable this check as we dynamically populate the two
-        # passwords using the 'sread()' function.
-        # shellcheck disable=2154
-        [ "$pass" = "$pass2" ] ||
-            die "passwords don't match"
-    fi
+		# Disable this check as we dynamically populate the two
+		# passwords using the 'sread()' function.
+		# shellcheck disable=2154
+		[ "$pass" = "$pass2" ] ||
+			die "passwords don't match"
+	fi
 
-    mkdir -p "$(dirname "./$name")" ||
-        die "couldn't create category '$(dirname "./$name" | cut -c3-)'"
+	mkdir -p "$(dirname "./$name")" ||
+		die "couldn't create category '$(dirname "./$name" | cut -c3-)'"
 
-    # Use 'age' to store the password in an encrypted file.
-    # A heredoc is used here instead of a 'printf' to avoid
-    # leaking the password through the '/proc' filesystem.
-    #
-    # Heredocs are sometimes implemented via temporary files,
-    # however this is typically done using 'mkstemp()' which
-    # is more secure than a leak in '/proc'.
-    $age --encrypt -R "$recipients_file" -o "./$name.age" <<-EOF ||
+	# Use 'age' to store the password in an encrypted file.
+	# A heredoc is used here instead of a 'printf' to avoid
+	# leaking the password through the '/proc' filesystem.
+	#
+	# Heredocs are sometimes implemented via temporary files,
+	# however this is typically done using 'mkstemp()' which
+	# is more secure than a leak in '/proc'.
+	$age --encrypt -R "$recipients_file" -o "./$name.age" <<-EOF ||
 		$pass
 	EOF
-        die "couldn't encrypt $name.age"
+		die "couldn't encrypt $name.age"
 
-    printf '%s\n' "saved '$name' to the store."
+	printf '%s\n' "saved '$name' to the store."
 
-    $git_enabled && git_add_and_commit "./$name.age" "add '$name'"
+	$git_enabled && git_add_and_commit "./$name.age" "add '$name'"
 }
 
 pw_edit() {
-    # Prefer /dev/shm because it's an in-memory
-    # space that we can use to store data without
-    # having bits laying around in sectors.
-    tmpdir=/dev/shm
-    # Fall back to /tmp - /dev/shm is Linux-only & /tmp
-    # and shared memory space on other operating systems
-    # have non-standard methods of setup/access.
-    [ -w /dev/shm ] || tmpdir=/tmp
+	# Prefer /dev/shm because it's an in-memory
+	# space that we can use to store data without
+	# having bits laying around in sectors.
+	tmpdir=/dev/shm
+	# Fall back to /tmp - /dev/shm is Linux-only & /tmp
+	# and shared memory space on other operating systems
+	# have non-standard methods of setup/access.
+	[ -w /dev/shm ] || tmpdir=/tmp
 
-    # Reimplement mktemp here, because
-    # mktemp isn't defined in POSIX.
-    tmpfile=$tmpdir/pa.$(rand_chars 10 'A-Za-z0-9') ||
-        die "couldn't generate random characters"
+	# Reimplement mktemp here, because
+	# mktemp isn't defined in POSIX.
+	tmpfile=$tmpdir/pa.$(rand_chars 10 'A-Za-z0-9') ||
+		die "couldn't generate random characters"
 
-    trap 'rm -f "$tmpfile"' EXIT
+	trap 'rm -f "$tmpfile"' EXIT
 
-    if [ ! -f "$name.age" ]; then new=true; else new=false && {
-        $age --decrypt -i "$identities_file" -o "$tmpfile" "./$name.age" ||
-            die "couldn't decrypt $name.age"
-    }; fi
+	if [ ! -f "$name.age" ]; then new=true; else new=false && {
+		$age --decrypt -i "$identities_file" -o "$tmpfile" "./$name.age" ||
+			die "couldn't decrypt $name.age"
+	}; fi
 
-    ${EDITOR:-vi} "$tmpfile" ||
-        die "EDITOR exited non-zero"
+	${EDITOR:-vi} "$tmpfile" ||
+		die "EDITOR exited non-zero"
 
-    [ -s "$tmpfile" ] && {
-        mkdir -p "$(dirname "./$name")" ||
-            die "couldn't create category '$(dirname "./$name" | cut -c3-)'"
+	[ -s "$tmpfile" ] && {
+		mkdir -p "$(dirname "./$name")" ||
+			die "couldn't create category '$(dirname "./$name" | cut -c3-)'"
 
-        $age --encrypt -R "$recipients_file" -o "./$name.age" "$tmpfile" ||
-            die "couldn't encrypt $name.age"
+		$age --encrypt -R "$recipients_file" -o "./$name.age" "$tmpfile" ||
+			die "couldn't encrypt $name.age"
 
-        if $new; then printf '%s\n' "saved '$name' to the store."; fi
+		if $new; then printf '%s\n' "saved '$name' to the store."; fi
 
-        $git_enabled && git_add_and_commit "./$name.age" "edit '$name'"
-    }
+		$git_enabled && git_add_and_commit "./$name.age" "edit '$name'"
+	}
 }
 
 pw_del() {
-    yn "delete password '$name'?" && {
-        rm -f "./$name.age"
+	yn "delete password '$name'?" && {
+		rm -f "./$name.age"
 
-        rmdir -p "$(dirname "./$name")" 2>/dev/null || :
+		rmdir -p "$(dirname "./$name")" 2>/dev/null || :
 
-        $git_enabled && git_add_and_commit "./$name.age" "delete '$name'"
-    }
+		$git_enabled && git_add_and_commit "./$name.age" "delete '$name'"
+	}
 }
 
 pw_show() {
-    $age --decrypt -i "$identities_file" "./$name.age" ||
-        die "couldn't decrypt $name.age"
+	$age --decrypt -i "$identities_file" "./$name.age" ||
+		die "couldn't decrypt $name.age"
 }
 
 pw_copy() {
-    local decrypted_password
-    decrypted_password=$($age --decrypt -i "$identities_file" "./$name.age" ||
-        die "couldn't decrypt $name.age")
+	decrypted_password=$($age --decrypt -i "$identities_file" "./$name.age" ||
+		die "couldn't decrypt $name.age")
 
-    if [[ -f /proc/version ]] && grep -iq Microsoft /proc/version; then
-        echo -n "$decrypted_password" | /mnt/c/Windows/System32/clip.exe
-    elif [[ $(uname -s) == "Darwin" ]]; then
-        echo -n "$decrypted_password" | pbcopy
-    elif [[ $(uname -s) == "CYGWIN" ]]; then
-        echo -n "$decrypted_password" > /dev/clipboard
-    elif command -v wl-copy &> /dev/null; then
-        echo -n "$decrypted_password" | wl-copy
-    elif command -v xclip &> /dev/null; then
-        echo -n "$decrypted_password" | xclip -sel clip
-    elif command -v xsel &> /dev/null; then
-        echo -n "$decrypted_password" | xsel --clipboard
-    else
-        die "no copy utility found, please install it"
-    fi
+	case "$(uname -s)" in
+	Linux*)
+		if [ -f /proc/version ] && grep -iq Microsoft /proc/version; then
+			printf "%s" "$decrypted_password" | /mnt/c/Windows/System32/clip.exe
+		elif command -v wl-copy >/dev/null 2>&1; then
+			printf "%s" "$decrypted_password" | wl-copy
+		elif command -v xclip >/dev/null 2>&1; then
+			printf "%s" "$decrypted_password" | xclip -sel clip
+		elif command -v xsel >/dev/null 2>&1; then
+			printf "%s" "$decrypted_password" | xsel --clipboard
+		fi
+		;;
+	Darwin*)
+		printf "%s" "$decrypted_password" | pbcopy
+		;;
+	CYGWIN*)
+		printf "%s" "$decrypted_password" >/dev/clipboard
+		;;
+	*)
+		die "no copy utility found, please install it"
+		;;
+	esac
 }
 
 pw_list() {
-    find . -type f -name \*.age | sed 's/..//;s/\.age$//' | sort
+	find . -type f -name \*.age | sed 's/..//;s/\.age$//' | sort
 }
 
 git_add_and_commit() {
-    git add "$1" ||
-        die "couldn't git add $1"
+	git add "$1" ||
+		die "couldn't git add $1"
 
-    git commit -qm "$2" ||
-        die "couldn't git commit $2"
+	git commit -qm "$2" ||
+		die "couldn't git commit $2"
 }
 
 rand_chars() {
-    # Generate random characters by reading '/dev/urandom' with the
-    # 'tr' command to translate the random bytes into a
-    # configurable character set.
-    #
-    # The 'dd' command is then used to read only the desired length.
-    #
-    # Regarding usage of '/dev/urandom' instead of '/dev/random'.
-    # See: https://www.2uo.de/myths-about-urandom
-    #
-    # $1 = number of chars to receive
-    # $2 = filter for the chars
-    LC_ALL=C tr -dc "$2" </dev/urandom | dd ibs=1 obs=1 count="$1" 2>/dev/null
+	# Generate random characters by reading '/dev/urandom' with the
+	# 'tr' command to translate the random bytes into a
+	# configurable character set.
+	#
+	# The 'dd' command is then used to read only the desired length.
+	#
+	# Regarding usage of '/dev/urandom' instead of '/dev/random'.
+	# See: https://www.2uo.de/myths-about-urandom
+	#
+	# $1 = number of chars to receive
+	# $2 = filter for the chars
+	LC_ALL=C tr -dc "$2" </dev/urandom | dd ibs=1 obs=1 count="$1" 2>/dev/null
 }
 
 yn() {
-    printf '%s [y/N]: ' "$1"
+	printf '%s [y/N]: ' "$1"
 
-    # Enable raw input to allow for a single byte to be read from
-    # stdin without needing to wait for the user to press Return.
-    [ -t 0 ] && stty -echo -icanon
+	# Enable raw input to allow for a single byte to be read from
+	# stdin without needing to wait for the user to press Return.
+	[ -t 0 ] && stty -echo -icanon
 
-    # Read a single byte from stdin using 'dd'. POSIX 'read' has
-    # no support for single/'N' byte based input from the user.
-    answer=$(dd ibs=1 count=1 2>/dev/null)
+	# Read a single byte from stdin using 'dd'. POSIX 'read' has
+	# no support for single/'N' byte based input from the user.
+	answer=$(dd ibs=1 count=1 2>/dev/null)
 
-    # Disable raw input, leaving the terminal how we *should*
-    # have found it.
-    [ -t 0 ] && stty echo icanon
+	# Disable raw input, leaving the terminal how we *should*
+	# have found it.
+	[ -t 0 ] && stty echo icanon
 
-    printf '%s\n' "$answer"
+	printf '%s\n' "$answer"
 
-    # Handle the answer here directly, enabling this function's
-    # return status to be used in place of checking for '[yY]'
-    # throughout this program.
-    glob "$answer" '[yY]'
+	# Handle the answer here directly, enabling this function's
+	# return status to be used in place of checking for '[yY]'
+	# throughout this program.
+	glob "$answer" '[yY]'
 }
 
 sread() {
-    printf '%s: ' "$2"
+	printf '%s: ' "$2"
 
-    # Disable terminal printing while the user inputs their
-    # password. POSIX 'read' has no '-s' flag which would
-    # effectively do the same thing.
-    [ -t 0 ] && stty -echo
-    read -r "$1"
-    [ -t 0 ] && stty echo
+	# Disable terminal printing while the user inputs their
+	# password. POSIX 'read' has no '-s' flag which would
+	# effectively do the same thing.
+	[ -t 0 ] && stty -echo
+	read -r "$1"
+	[ -t 0 ] && stty echo
 
-    printf '\n'
+	printf '\n'
 }
 
 glob() {
-    # This is a simple wrapper around a case statement to allow
-    # for simple string comparisons against globs.
-    #
-    # Example: if glob "Hello World" '* World'; then
-    #
-    # Disable this warning as it is the intended behavior.
-    # shellcheck disable=2254
-    case $1 in $2) return 0 ;; esac
-    return 1
+	# This is a simple wrapper around a case statement to allow
+	# for simple string comparisons against globs.
+	#
+	# Example: if glob "Hello World" '* World'; then
+	#
+	# Disable this warning as it is the intended behavior.
+	# shellcheck disable=2254
+	case $1 in $2) return 0 ;; esac
+	return 1
 }
 
 die() {
-    printf '%s: %s.\n' "$(basename "$0")" "$1" >&2
-    exit 1
+	printf '%s: %s.\n' "$(basename "$0")" "$1" >&2
+	exit 1
 }
 
 usage() {
-    printf %s "\
+	printf %s "\
   pa
     a simple password manager
 
@@ -218,118 +224,118 @@ usage() {
     password pattern: export PA_PATTERN=A-Za-z0-9-_
     disable tracking: export PA_NOGIT=
 "
-    exit 0
+	exit 0
 }
 
 main() {
-    age=$(command -v age || command -v rage) ||
-        die "age not found, install per https://age-encryption.org"
+	age=$(command -v age || command -v rage) ||
+		die "age not found, install per https://age-encryption.org"
 
-    age_keygen=$(command -v age-keygen || command -v rage-keygen) ||
-        die "age-keygen not found, install per https://age-encryption.org"
+	age_keygen=$(command -v age-keygen || command -v rage-keygen) ||
+		die "age-keygen not found, install per https://age-encryption.org"
 
-    : "${PA_DIR:=${XDG_DATA_HOME:-$HOME/.local/share}/pa}"
+	: "${PA_DIR:=${XDG_DATA_HOME:-$HOME/.local/share}/pa}"
 
-    glob "$PA_DIR" '/*' ||
-        die "PA_DIR must be an absolute path (got '$PA_DIR')"
+	glob "$PA_DIR" '/*' ||
+		die "PA_DIR must be an absolute path (got '$PA_DIR')"
 
-    identities_file=$PA_DIR/identities
-    recipients_file=$PA_DIR/recipients
+	identities_file=$PA_DIR/identities
+	recipients_file=$PA_DIR/recipients
 
-    mkdir -p "$PA_DIR/passwords" ||
-        die "couldn't create pa directories"
+	mkdir -p "$PA_DIR/passwords" ||
+		die "couldn't create pa directories"
 
-    cd "$PA_DIR/passwords" ||
-        die "couldn't change to password directory"
+	cd "$PA_DIR/passwords" ||
+		die "couldn't change to password directory"
 
-    # Ensure that globbing is disabled
-    # to avoid insecurities with word-splitting.
-    set -f
+	# Ensure that globbing is disabled
+	# to avoid insecurities with word-splitting.
+	set -f
 
-    git_enabled=false
-    [ -z "${PA_NOGIT+x}" ] && command -v git >/dev/null 2>&1 && git_enabled=true
+	git_enabled=false
+	[ -z "${PA_NOGIT+x}" ] && command -v git >/dev/null 2>&1 && git_enabled=true
 
-    $git_enabled && [ ! -d .git ] && {
-        git init -q
+	$git_enabled && [ ! -d .git ] && {
+		git init -q
 
-        # Put something in user config if it's not set globally,
-        # because git doesn't allow to commit without it.
-        git config user.name >/dev/null || git config user.name pa
-        git config user.email >/dev/null || git config user.email ""
+		# Put something in user config if it's not set globally,
+		# because git doesn't allow to commit without it.
+		git config user.name >/dev/null || git config user.name pa
+		git config user.email >/dev/null || git config user.email ""
 
-        # Configure diff driver for age encrypted files that treats them as
-        # binary and decrypts them when a human-readable diff is requested.
-        git config diff.age.binary true
-        git config diff.age.textconv "$age --decrypt -i '$identities_file'"
+		# Configure diff driver for age encrypted files that treats them as
+		# binary and decrypts them when a human-readable diff is requested.
+		git config diff.age.binary true
+		git config diff.age.textconv "$age --decrypt -i '$identities_file'"
 
-        # Assign this diff driver to all passwords.
-        printf '%s\n' '*.age diff=age' >.gitattributes
+		# Assign this diff driver to all passwords.
+		printf '%s\n' '*.age diff=age' >.gitattributes
 
-        git_add_and_commit . "initial commit"
-    }
+		git_add_and_commit . "initial commit"
+	}
 
-    command=$1
-    shift
+	command=$1
+	shift
 
-    glob "$command" 'g*' && {
-        git "$@"
-        exit $?
-    }
+	glob "$command" 'g*' && {
+		git "$@"
+		exit $?
+	}
 
-    # Combine the rest of positional arguments into
-    # a name and remove control characters from it
-    # so that a name can always be safely displayed.
-    name=$(printf %s "$*" | LC_ALL=C tr -d '[:cntrl:]')
+	# Combine the rest of positional arguments into
+	# a name and remove control characters from it
+	# so that a name can always be safely displayed.
+	name=$(printf %s "$*" | LC_ALL=C tr -d '[:cntrl:]')
 
-    glob "$command" '[adesc]*' && [ -z "$name" ] &&
-        die "missing [name] argument"
+	glob "$command" '[adesc]*' && [ -z "$name" ] &&
+		die "missing [name] argument"
 
-    glob "$name" '/*' || glob "$name" '*/' &&
-        die "name can't start or end with '/'"
+	glob "$name" '/*' || glob "$name" '*/' &&
+		die "name can't start or end with '/'"
 
-    glob "$name" '../*' || glob "$name" '*/../*' &&
-        die "category went out of bounds"
+	glob "$name" '../*' || glob "$name" '*/../*' &&
+		die "category went out of bounds"
 
-    glob "$command" 'a*' && [ -f "$name.age" ] &&
-        die "password '$name' already exists"
+	glob "$command" 'a*' && [ -f "$name.age" ] &&
+		die "password '$name' already exists"
 
-    glob "$command" '[dsc]*' && [ ! -f "$name.age" ] &&
-        die "password '$name' doesn't exist"
+	glob "$command" '[dsc]*' && [ ! -f "$name.age" ] &&
+		die "password '$name' doesn't exist"
 
-    if command -v age-plugin-yubikey >/dev/null 2>&1; then
-        [ ! -f "$identities_file" ] && [ ! -f "$recipients_file" ] && {
-            yn "generate yubikey identity?" && {
-                age-plugin-yubikey \
-                    --generate \
-                    --name "pa identity" \
-                    --pin-policy never \
-                    --touch-policy always >"$identities_file" ||
-                    die 'failed to generate YubiKey identity file'
+	if command -v age-plugin-yubikey >/dev/null 2>&1; then
+		[ ! -f "$identities_file" ] && [ ! -f "$recipients_file" ] && {
+			yn "generate yubikey identity?" && {
+				age-plugin-yubikey \
+					--generate \
+					--name "pa identity" \
+					--pin-policy never \
+					--touch-policy always >"$identities_file" ||
+					die 'failed to generate YubiKey identity file'
 
-                age-plugin-yubikey -l > "$recipients_file" ||
-                    die 'failed to generate YubiKey recipients file'
-            }
-        }
-    fi
+				age-plugin-yubikey -l >"$recipients_file" ||
+					die 'failed to generate YubiKey recipients file'
+			}
+		}
+	fi
 
-    [ -f "$identities_file" ] ||
-        $age_keygen -o "$identities_file" 2>/dev/null
+	[ -f "$identities_file" ] ||
+		$age_keygen -o "$identities_file" 2>/dev/null
 
-    [ -f "$recipients_file" ] ||
-        $age_keygen -y -o "$recipients_file" "$identities_file" 2>/dev/null
+	[ -f "$recipients_file" ] ||
+		$age_keygen -y -o "$recipients_file" "$identities_file" 2>/dev/null
 
-    # Ensure that we leave the terminal in a usable state on Ctrl+C.
-    [ -t 0 ] && trap 'stty echo icanon; trap - INT; kill -s INT 0' INT
+	# Ensure that we leave the terminal in a usable state on Ctrl+C.
+	[ -t 0 ] && trap 'stty echo icanon; trap - INT; kill -s INT 0' INT
 
-    case $command in
-    a*) pw_add ;;
-    d*) pw_del ;;
-    e*) pw_edit ;;
-    l*) pw_list ;;
-    s*) pw_show ;;
-    c*) pw_copy ;;
-    *) usage ;;
-    esac
+	case $command in
+	a*) pw_add ;;
+	d*) pw_del ;;
+	e*) pw_edit ;;
+	l*) pw_list ;;
+	s*) pw_show ;;
+	c*) pw_copy ;;
+	*) usage ;;
+	esac
 }
 
 # Ensure that debug mode is never enabled to
