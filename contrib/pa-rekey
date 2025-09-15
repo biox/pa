@@ -1,67 +1,65 @@
 #!/bin/sh
 #
 # rotate keys and reencrypt passwords
-#
-# Reuse identities file: export PA_IDENTITIES=~/.local/share/pa/identities
-# Reuse recipients file: export PA_RECIPIENTS=~/.local/share/pa/recipients
 
-die() {
-    printf '%s: %s.\n' "$(basename "$0")" "$1" >&2
-    exit 1
-}
+set -e
 
-age=$(command -v age || command -v rage) ||
-    die "age not found, install per https://age-encryption.org"
-
-age_keygen=$(command -v age-keygen || command -v rage-keygen) ||
-    die "age-keygen not found, install per https://age-encryption.org"
-
-# Ensure that pipelines return status of the last failed command.
-set -o pipefail
-
-# Restrict permissions of any new files to only the current user.
-umask 077
+# Complete any pending
+# recipients synchronization.
+pa l >/dev/null
 
 : "${PA_DIR:=${XDG_DATA_HOME:-$HOME/.local/share}/pa}"
 
-realstore=$(realpath "$PA_DIR/passwords") ||
-    die "couldn't get path to password directory"
+suffix=$(LC_ALL=C tr -dc A-Za-z0-9 </dev/urandom |
+    dd ibs=1 obs=1 count=10 2>/dev/null)
 
-tmpdir=$PA_DIR/tmp
+[ "$suffix" ]
 
-mkdir "$tmpdir" ||
-    die "couldn't create temporary directory"
+tmp=$PA_DIR/rekey.$suffix
 
-trap 'rm -rf "$tmpdir"; exit' EXIT
-trap 'rm -rf "$tmpdir"; trap - INT; kill -s INT 0' INT
+mkdir "$tmp"
 
-cp -Rp "$realstore" "$tmpdir/passwords" ||
-    die "couldn't copy password directory"
+trap 'rm -f "$tmp/identities" "$tmp/recipients" "$tmp/passwords/.recipients"
+rmdir "$tmp/passwords" "$tmp"' EXIT
 
-# Remove git repository for forward secrecy.
-rm -rf "$tmpdir/passwords/.git"
+cp -p "$PA_DIR/identities" "$tmp/identities"
 
-[ "$PA_IDENTITIES" ] && cp "$PA_IDENTITIES" "$tmpdir/identities"
-[ "$PA_RECIPIENTS" ] && cp "$PA_RECIPIENTS" "$tmpdir/recipients"
+# Generate recipients for current identities.
+PA_DIR=$tmp PA_NOGIT='' pa l >/dev/null
 
-$age_keygen >>"$tmpdir/identities" 2>/dev/null
-$age_keygen -y "$tmpdir/identities" >>"$tmpdir/recipients" 2>/dev/null
+# Filter out recipients corresponding to current identities.
+{ grep -Fxvf "$tmp/passwords/.recipients" "$PA_DIR/recipients" ||
+    :; } >"$tmp/recipients"
 
-pa l | while read -r name; do
-    { pa s "$name" |
-        $age -R "$tmpdir/recipients" -o "$tmpdir/passwords/$name.age"; } ||
-        die "couldn't encrypt $name.age"
-done
+rm -f "$tmp/identities" "$tmp/passwords/.recipients"
 
-trap - INT EXIT
+# Generate a brand new key pair.
+PA_DIR=$tmp PA_NOGIT='' pa l >/dev/null
 
-rm -rf "$realstore" ||
-    die "couldn't remove password directory"
+printf 'add a new generated recipient? [y/N]: ' >&2
 
-mv "$tmpdir/passwords" "$realstore"
-mv "$tmpdir/identities" "$(realpath "$PA_DIR/identities")"
-mv "$tmpdir/recipients" "$(realpath "$PA_DIR/recipients")"
-rmdir "$tmpdir"
+[ -t 0 ] && trap 'stty echo icanon; trap - INT; kill -s INT 0' INT
 
-# Recreate git repository if needed.
+[ -t 0 ] && stty -echo -icanon
+
+answer=$(dd ibs=1 count=1 2>/dev/null)
+
+[ -t 0 ] && stty echo icanon
+
+printf '%s\n' "${answer:-N}" >&2
+
+case $answer in [yY]) ;; *) exit 1 ;; esac
+
+# Ensure files can be decrypted with both
+# identities if store is in a partial state.
+cat "$tmp/identities" >>"$PA_DIR/identities"
+
+# Recipients are now ready to use.
+mv "$tmp/recipients" "$PA_DIR/recipients"
+
+# Reencrypt all passwords
+# for new recipients.
 pa l >/dev/null
+
+# Old identity is now safe to remove.
+mv "$tmp/identities" "$PA_DIR/identities"
