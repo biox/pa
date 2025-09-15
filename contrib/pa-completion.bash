@@ -1,13 +1,14 @@
 _pa() {
-    [[ $COMP_CWORD -eq 2 ]] && case "${COMP_WORDS[1]}" in [des]*)
-        names=()
+    [[ $COMP_CWORD -ne 2 ]] && return
 
-        # Escape all password names so compgen doesn't break.
-        while read -r name; do names+=("${name@Q}"); done < <(pa l)
+    names=()
 
-        mapfile -t COMPREPLY < <(compgen -W "${names[*]}" -- "${COMP_WORDS[2]}")
-        ;;
-    esac
+    while read -r name; do names+=("${name@Q}"); done < <(case "${COMP_WORDS[1]}" in
+        [des]*) pa l ;;
+        l*) pa l | sed 's/[^/]\+$//' | grep '/$' | sort -u ;;
+        esac)
+
+    mapfile -t COMPREPLY < <(compgen -W "${names[*]}" -- "${COMP_WORDS[2]}")
 }
 
 complete -o filenames -F _pa pa

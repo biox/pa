@@ -55,40 +55,39 @@ pw_edit() {
 
     # Reimplement mktemp here, because
     # mktemp isn't defined in POSIX.
-    tmpfile=$tmpdir/pa.$(rand_chars 10 'A-Za-z0-9') ||
+    new=true tmpfile=$tmpdir/pa.$(rand_chars 10 'A-Za-z0-9') ||
         die "couldn't generate random characters"
 
     trap 'rm -f "$tmpfile"' EXIT
 
-    if [ ! -f "$name.age" ]; then new=true; else new=false && {
-        $age --decrypt -i "$identities_file" -o "$tmpfile" "./$name.age" ||
-            die "couldn't decrypt $name.age"
-    }; fi
+    [ -f "$name.age" ] && new=false &&
+        { $age --decrypt -i "$identities_file" -o "$tmpfile" "./$name.age" ||
+            die "couldn't decrypt $name.age"; }
 
     ${EDITOR:-vi} "$tmpfile" ||
         die "EDITOR exited non-zero"
 
-    [ -s "$tmpfile" ] && {
-        mkdir -p "$(dirname "./$name")" ||
-            die "couldn't create category '$(dirname "./$name" | cut -c3-)'"
+    [ -s "$tmpfile" ] || return
 
-        $age --encrypt -R "$recipients_file" -o "./$name.age" "$tmpfile" ||
-            die "couldn't encrypt $name.age"
+    mkdir -p "$(dirname "./$name")" ||
+        die "couldn't create category '$(dirname "./$name" | cut -c3-)'"
 
-        if $new; then printf '%s\n' "saved '$name' to the store."; fi
+    $age --encrypt -R "$recipients_file" -o "./$name.age" "$tmpfile" ||
+        die "couldn't encrypt $name.age"
 
-        $git_enabled && git_add_and_commit "./$name.age" "edit '$name'"
-    }
+    if $new; then printf '%s\n' "saved '$name' to the store."; fi
+
+    $git_enabled && git_add_and_commit "./$name.age" "edit '$name'"
 }
 
 pw_del() {
-    yn "delete password '$name'?" && {
-        rm -f "./$name.age"
+    yn "delete password '$name'?" || return
 
-        rmdir -p "$(dirname "./$name")" 2>/dev/null || :
+    rm -f "./$name.age"
 
-        $git_enabled && git_add_and_commit "./$name.age" "delete '$name'"
-    }
+    rmdir -p "$(dirname "./$name")" 2>/dev/null || :
+
+    $git_enabled && git_add_and_commit "./$name.age" "delete '$name'"
 }
 
 pw_show() {
@@ -97,7 +96,7 @@ pw_show() {
 }
 
 pw_list() {
-    find . -type f -name \*.age | sed 's/..//;s/\.age$//' | sort
+    find "./$name" -type f -name \*.age | sed 's/..//;s/\.age$//' | sort
 }
 
 git_add_and_commit() {
@@ -261,8 +260,11 @@ main() {
     glob "$command" '[ades]*' && [ -z "$name" ] &&
         die "missing [name] argument"
 
-    glob "$name" '/*' || glob "$name" '*/' &&
+    glob "$command" '[ae]*' && { glob "$name" '/*' || glob "$name" '*/'; } &&
         die "name can't start or end with '/'"
+
+    glob "$command" 'l*' && glob "$name" '/*' &&
+        die "category can't start with '/'"
 
     glob "$name" '../*' || glob "$name" '*/../*' &&
         die "category went out of bounds"
@@ -272,6 +274,9 @@ main() {
 
     glob "$command" '[ds]*' && [ ! -f "$name.age" ] &&
         die "password '$name' doesn't exist"
+
+    glob "$command" 'l*' && [ "$name" ] && [ ! -d "$name" ] &&
+        die "category '$name' doesn't exist"
 
     if command -v age-plugin-yubikey >/dev/null 2>&1; then
         [ ! -f "$identities_file" ] && [ ! -f "$recipients_file" ] && {
@@ -283,7 +288,7 @@ main() {
                     --touch-policy always >"$identities_file" ||
                     die 'failed to generate YubiKey identity file'
 
-                age-plugin-yubikey -l > "$recipients_file" ||
+                age-plugin-yubikey -l >"$recipients_file" ||
                     die 'failed to generate YubiKey recipients file'
             }
         }
