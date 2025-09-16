@@ -185,7 +185,7 @@ usage() {
     [d]el  [name] - Delete a password entry.
     [e]dit [name] - Edit a password entry with ${EDITOR:-vi}.
     [g]it  [cmd]  - Run git command in the password dir.
-    [l]ist        - List all entries.
+    [l]ist [cat]  - List all entries in a category.
     [s]how [name] - Show password for an entry.
 
   env vars:
@@ -260,7 +260,7 @@ main() {
     glob "$command" '[ades]*' && [ -z "$name" ] &&
         die "missing [name] argument"
 
-    glob "$command" '[ae]*' && { glob "$name" '/*' || glob "$name" '*/'; } &&
+    glob "$command" '[ades]*' && { glob "$name" '/*' || glob "$name" '*/'; } &&
         die "name can't start or end with '/'"
 
     glob "$command" 'l*' && glob "$name" '/*' &&
