@@ -48,10 +48,10 @@ pw_edit() {
     # space that we can use to store data without
     # having bits laying around in sectors.
     tmpdir=/dev/shm
-    # Fall back to /tmp - /dev/shm is Linux-only & /tmp
+    # Fall back to $TMPDIR or /tmp - /dev/shm is Linux-only
     # and shared memory space on other operating systems
     # have non-standard methods of setup/access.
-    [ -w /dev/shm ] || tmpdir=/tmp
+    [ -w /dev/shm ] || tmpdir=${TMPDIR:-/tmp}
 
     # Reimplement mktemp here, because
     # mktemp isn't defined in POSIX.
