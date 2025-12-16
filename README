@@ -9,7 +9,7 @@
     - multiple identity/recipient support
     - written in portable posix shell
     - simple to extend
-    - only ~180 lines of code
+    - only ~200 lines of code
     - pronounced "pah" - as in "papa"
 
 
@@ -30,6 +30,7 @@
       [g]it  [cmd]  - Run git command in the password dir.
       [l]ist [cat]  - List all entries in a category.
       [s]how [name] - Show password for an entry.
+      [m]ove [src] [name] - Rename a password entry.
 
     env vars:
       data directory:   export PA_DIR=~/.local/share/pa/passwords
@@ -52,11 +53,14 @@
     $ pa edit test
     <opens $EDITOR or vi>
 
-    $ pa del test
-    delete password 'test'? [y/N]: y
+    $ pa mv test example
+
+    $ pa del example
+    delete password 'example'? [y/N]: y
 
     $ pa git log --oneline
-    bbe85dc (HEAD -> main) delete 'test'
+    bbe85dc (HEAD -> main) delete 'example'
+    c7f76d7 move 'test' to 'example'
     b597c04 edit 'test'
     cba20cc add 'test'
     ef76f7e initial commit
@@ -90,11 +94,6 @@
 
       probably the default location:
         ~/.local/share/pa/passwords
-
-    > how do i rename a password?
-
-      cd ~/.local/share/pa/passwords
-      mv foo.age bar.age
 
 
   credits

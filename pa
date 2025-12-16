@@ -99,6 +99,18 @@ pw_list() {
     find "./$name" -type f -name \*.age | sed 's/..//;s/\.age$//' | sort
 }
 
+pw_move() {
+    mkdir -p "$(dirname -- "$name")" ||
+        die "couldn't create category '$(dirname -- "$name")'"
+
+    mv -- "$src.age" "$name.age"
+
+    if $git_enabled; then
+        git rm -q "./$src.age"
+        git_add_and_commit "./$name.age" "move '$src' to '$name'"
+    fi
+}
+
 git_add_and_commit() {
     git add "$1" ||
         die "couldn't git add $1"
@@ -187,6 +199,7 @@ usage() {
     [g]it  [cmd]  - Run git command in the password dir.
     [l]ist [cat]  - List all entries in a category.
     [s]how [name] - Show password for an entry.
+    [m]ove [src] [name] - Rename a password entry.
 
   env vars:
     data directory:   export PA_DIR=~/.local/share/pa
@@ -252,24 +265,31 @@ main() {
         exit $?
     }
 
+    glob "$command" 'm*' && { src=$1 && [ "$src" ] ||
+        die "missing [src] argument"; } && shift
+
     # Combine the rest of positional arguments into
     # a name and remove control characters from it
     # so that a name can always be safely displayed.
     name=$(printf %s "$*" | LC_ALL=C tr -d '[:cntrl:]')
 
-    glob "$command" '[ades]*' && [ -z "$name" ] &&
+    glob "$command" '[adesm]*' && [ -z "$name" ] &&
         die "missing [name] argument"
 
-    glob "$command" '[ades]*' && { glob "$name" '/*' || glob "$name" '*/'; } &&
+    glob "$command" '[adesm]*' && { glob "$name" '/*' || glob "$name" '*/'; } &&
         die "name can't start or end with '/'"
 
     glob "$command" 'l*' && glob "$name" '/*' &&
         die "category can't start with '/'"
 
-    glob "$name" '../*' || glob "$name" '*/../*' &&
+    glob "$name" '../*' || glob "$name" '*/../*' ||
+        glob "$src" '../*' || glob "$src" '*/../*' &&
         die "category went out of bounds"
 
-    glob "$command" 'a*' && [ -f "$name.age" ] &&
+    glob "$command" 'm*' && [ ! -f "$src.age" ] &&
+        die "password '$src' doesn't exist"
+
+    glob "$command" '[am]*' && [ -f "$name.age" ] &&
         die "password '$name' already exists"
 
     glob "$command" '[ds]*' && [ ! -f "$name.age" ] &&
@@ -309,6 +329,7 @@ main() {
     e*) pw_edit ;;
     l*) pw_list ;;
     s*) pw_show ;;
+    m*) pw_move ;;
     *) usage ;;
     esac
 }
