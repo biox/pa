@@ -55,6 +55,16 @@ test "$(./pa list)" = "nested/password
 test" ||
     fail "pa list output should match example"
 
+# pa mv
+./pa mv test another/nested password ||
+    fail "pa mv should rename the test password"
+
+test -f "$PA_DIR/passwords/test.age" &&
+    fail "pa mv should have removed an old password file"
+
+test -s "$PA_DIR/passwords/another/nested password.age" ||
+    fail "pa mv should have created a new password file"
+
 # ensure git commits are working
 git -C "$PA_DIR/passwords" log | grep -q "add 'nested/password'" ||
     fail "git log should have line: add 'nested/password'"
