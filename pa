@@ -3,8 +3,10 @@
 # pa - a simple password manager
 
 pw_add() {
-    if yn "generate a password?"; then
-        pass=$(rand_chars "${PA_LENGTH:-50}" "${PA_PATTERN:-A-Za-z0-9-_}") ||
+    if ask "generate a password? [y/N]" N; then
+        pass=$(rand_chars "${PA_LENGTH:-50}" "${PA_PATTERN:-A-Za-z0-9-_}")
+
+        [ "$pass" ] ||
             die "couldn't generate a password"
     else
         # 'sread()' is a simple wrapper function around 'read'
@@ -40,54 +42,43 @@ pw_add() {
 
     printf '%s\n' "saved '$name' to the store."
 
-    $git_enabled && git_add_and_commit "./$name.age" "add '$name'"
+    if $git_enabled; then git_add_and_commit "./$name.age" "add '$name'"; fi
 }
 
 pw_edit() {
-    # Prefer /dev/shm because it's an in-memory
-    # space that we can use to store data without
-    # having bits laying around in sectors.
-    tmpdir=/dev/shm
-    # Fall back to $TMPDIR or /tmp - /dev/shm is Linux-only
-    # and shared memory space on other operating systems
-    # have non-standard methods of setup/access.
-    [ -w /dev/shm ] || tmpdir=${TMPDIR:-/tmp}
+    new=true edittmp=$(mkstemp) ||
+        die "couldn't create a shared memory filename"
 
-    # Reimplement mktemp here, because
-    # mktemp isn't defined in POSIX.
-    new=true tmpfile=$tmpdir/pa.$(rand_chars 10 'A-Za-z0-9') ||
-        die "couldn't generate random characters"
-
-    trap 'rm -f "$tmpfile"' EXIT
+    trap 'rm -f "$edittmp"' EXIT
 
     [ -f "$name.age" ] && new=false &&
-        { $age --decrypt -i "$identities_file" -o "$tmpfile" "./$name.age" ||
+        { $age --decrypt -i "$identities_file" -o "$edittmp" "./$name.age" ||
             die "couldn't decrypt $name.age"; }
 
-    ${EDITOR:-vi} "$tmpfile" ||
-        die "EDITOR exited non-zero"
+    ${EDITOR:-vi} "$edittmp" ||
+        die "editor exited unsuccessfully"
 
-    [ -s "$tmpfile" ] || return
+    [ -s "$edittmp" ] || return
 
     mkdir -p "$(dirname -- "$name")" ||
         die "couldn't create category '$(dirname -- "$name")'"
 
-    $age --encrypt -R "$recipients_file" -o "./$name.age" "$tmpfile" ||
+    $age --encrypt -R "$recipients_file" -o "./$name.age" "$edittmp" ||
         die "couldn't encrypt $name.age"
 
     if $new; then printf '%s\n' "saved '$name' to the store."; fi
 
-    $git_enabled && git_add_and_commit "./$name.age" "edit '$name'"
+    if $git_enabled; then git_add_and_commit "./$name.age" "edit '$name'"; fi
 }
 
 pw_del() {
-    yn "delete password '$name'?" || return
+    ask "delete password '$name'? [y/N]" N || return
 
     rm -f "./$name.age"
 
     rmdir -p "$(dirname -- "$name")" 2>/dev/null || :
 
-    $git_enabled && git_add_and_commit "./$name.age" "delete '$name'"
+    if $git_enabled; then git_add_and_commit "./$name.age" "delete '$name'"; fi
 }
 
 pw_show() {
@@ -99,12 +90,106 @@ pw_list() {
     find "./$name" -type f -name \*.age | sed 's/..//;s/\.age$//' | sort
 }
 
-git_add_and_commit() {
-    git add "$1" ||
-        die "couldn't git add $1"
+change_recipients() {
+    cmp -s "$recipients_file" .recipients && return
 
-    git commit -qm "$2" ||
-        die "couldn't git commit $2"
+    [ -f "$PA_DIR/lock" ] &&
+        die "locked to change recipients"
+
+    new_local=false revoke=false new_count=0 old_count='' passtmp=$(mkstemp) ||
+        die "couldn't create a shared memory filename"
+
+    # Compare recipients files to transfer new locally added recipients.
+    grep -Fxvf .recipients "$recipients_file" >"$passtmp" && new_local=true
+
+    trap 'rm -f "$passtmp" "$PA_DIR/lock"' EXIT
+
+    # Compare recipients files to transfer new remotely added recipients.
+    if new_remote=false && grep -Fxvf "$recipients_file" .recipients >&2 &&
+        new_remote=true && ! ask "do you trust these recipients? [y/N]" N; then
+        old_count=$(wc -l <.recipients)
+        cp "$recipients_file" .recipients
+    elif $new_local; then
+        cat "$passtmp" >>.recipients
+    elif $new_remote; then
+        new_count=$(wc -l <.recipients)
+    # No new recipients means only their order
+    # is different, so no need to re-encrypt.
+    else
+        cp .recipients "$recipients_file"
+
+        return
+    fi
+
+    total=$(pw_list | nl -w 1 | tee "$PA_DIR/lock" | tail -n 1 | cut -f 1)
+
+    # Try to re-encrypt all passwords
+    # for new recipients.
+    while read -r i passname; do
+        count=$(grep -c '^-> ' "./$passname.age")
+
+        # Compare the number of recipient stanzas in the encrypted password file
+        # with the number of remote recipients to not duplicate re-encryption of
+        # passwords as it might have already been done on another device.
+        [ "$new_count" -eq "$count" ] && continue
+
+        # Check if file was encrypted to removed recipients.
+        [ "$old_count" ] && [ "${old_count:-0}" -le "$count" ] && revoke=true
+
+        # Skip re-encryption of file that isn't encrypted to removed recipients.
+        [ "$old_count" ] && ! $new_local && ! $revoke && continue
+
+        [ -t 2 ] && printf 're-encrypting password %d of %d\r' "$i" "$total" >&2
+
+        $age --decrypt -i "$identities_file" "./$passname.age" 2>/dev/null |
+            $age -R .recipients -o "$passtmp" && mv "$passtmp" "./$passname.age"
+    done <"$PA_DIR/lock"
+
+    # To prepare for next output, use spaces to clean up the progress
+    # line, which has 27 non-digits and 2 numbers (current and total).
+    [ -t 2 ] && [ "$total" ] && printf '%*s\r' "$((${#total} * 2 + 27))" "" >&2
+
+    cp .recipients "$recipients_file"
+
+    [ "$old_count" ] && [ "${total:-0}" -gt 0 ] && if $revoke; then
+        printf '\n%s\n' "recipients were revoked, but holders of
+corresponding identities are still able
+to decrypt old copies of password files." >&2
+
+        [ -d .git ] && find .git ! -name config -type f -exec rm -f {} + &&
+            printf '%s\n' "repo is recreated to avoid leaks." >&2
+
+        printf '%s\n\n' "YOU SHOULD CHANGE YOUR PASSWORDS!" >&2
+    else
+        printf '\n%s\n\n' "the remote you sync with tried to
+add untrusted recipients, to stop
+it you should set another remote!" >&2
+    fi
+
+    # Only try to commit if there are any untracked files or unstaged changes.
+    if $git_enabled && git init -q && git status --porcelain | grep -q .; then
+        git_add_and_commit . "change recipients"
+    fi
+}
+
+git_add_and_commit() {
+    git add "$1" && git commit -qm "$2"
+}
+
+mkstemp() {
+    # Prefer /dev/shm because it's an in-memory
+    # space that we can use to store data without
+    # having bits laying around in sectors.
+    # Fall back to /tmp - /dev/shm is Linux-only & /tmp
+    # and shared memory space on other operating systems
+    # have non-standard methods of setup/access.
+    if [ -w /dev/shm ]; then tmpdir=/dev/shm; else tmpdir=/tmp; fi
+
+    suffix=$(rand_chars 10 'A-Za-z0-9')
+
+    [ "$suffix" ] || return
+
+    printf "$tmpdir/pa.%s" "$suffix"
 }
 
 rand_chars() {
@@ -122,8 +207,8 @@ rand_chars() {
     LC_ALL=C tr -dc "$2" </dev/urandom | dd ibs=1 obs=1 count="$1" 2>/dev/null
 }
 
-yn() {
-    printf '%s [y/N]: ' "$1"
+ask() {
+    printf '%s: ' "$1" >&2
 
     # Enable raw input to allow for a single byte to be read from
     # stdin without needing to wait for the user to press Return.
@@ -137,7 +222,7 @@ yn() {
     # have found it.
     [ -t 0 ] && stty echo icanon
 
-    printf '%s\n' "$answer"
+    printf '%s\n' "${answer:-$2}" >&2
 
     # Handle the answer here directly, enabling this function's
     # return status to be used in place of checking for '[yY]'
@@ -146,7 +231,7 @@ yn() {
 }
 
 sread() {
-    printf '%s: ' "$2"
+    printf '%s: ' "$2" >&2
 
     # Disable terminal printing while the user inputs their
     # password. POSIX 'read' has no '-s' flag which would
@@ -155,7 +240,7 @@ sread() {
     read -r "$1"
     [ -t 0 ] && stty echo
 
-    printf '\n'
+    printf '\n' >&2
 }
 
 glob() {
@@ -201,9 +286,6 @@ main() {
     age=$(command -v age || command -v rage) ||
         die "age not found, install per https://age-encryption.org"
 
-    age_keygen=$(command -v age-keygen || command -v rage-keygen) ||
-        die "age-keygen not found, install per https://age-encryption.org"
-
     : "${PA_DIR:=${XDG_DATA_HOME:-$HOME/.local/share}/pa}"
 
     glob "$PA_DIR" '/*' ||
@@ -218,37 +300,83 @@ main() {
     cd "$PA_DIR/passwords" ||
         die "couldn't change to password directory"
 
-    # Ensure that globbing is disabled
-    # to avoid insecurities with word-splitting.
-    set -f
+    # Ensure that we leave the terminal in a usable state on Ctrl+C.
+    [ -t 0 ] && trap 'stty echo icanon; trap - INT; kill -s INT 0' INT
+
+    [ ! -s "$identities_file" ] || [ ! -s "$recipients_file" ] && r='' && {
+        y= && command -v age-plugin-yubikey >/dev/null && y='[y]ubikey/'
+        s= && command -v age-plugin-se >/dev/null && s='[s]e/'
+        t= && command -v age-plugin-tpm >/dev/null && t='[t]pm/'
+        { ! command -v age-keygen && command -v rage-keygen; } >/dev/null && r=r
+
+        [ -s "$identities_file" ] || if [ "$y" ] || [ "$s" ] || [ "$t" ] &&
+            printf "choose identity generator (" >&2 &&
+            ask "$y$s$t${r}age-keygen)" && [ "$y" ]; then
+            age-plugin-yubikey -g --name "pa identity" --pin-policy never
+        elif [ "$s" ] && glob "$answer" [sS]; then
+            age-plugin-se keygen 2>/dev/null
+        elif [ "$t" ] && glob "$answer" [tT]; then
+            age-plugin-tpm --generate
+        else
+            "${r}age-keygen" 2>/dev/null
+        fi >"$identities_file" ||
+            die "couldn't generate an identity"
+
+        grep -q ^AGE-PLUGIN-YUBIKEY- "$identities_file" &&
+            # Get recipients only for keys in identities file.
+            age-plugin-yubikey -i 2>/dev/null | awk 'FNR==NR&&$0&&!/^#/{a[$0]
+            next}$0 in a{print p}{p=$NF}' "$identities_file" -
+
+        grep -q ^AGE-PLUGIN-SE- "$identities_file" &&
+            grep ^AGE-PLUGIN-SE- "$identities_file" | age-plugin-se recipients
+
+        grep -q ^AGE-PLUGIN-TPM- "$identities_file" &&
+            grep ^AGE-PLUGIN-TPM- "$identities_file" | age-plugin-tpm -y
+
+        grep -q ^AGE-SECRET-KEY- "$identities_file" &&
+            grep ^AGE-SECRET-KEY- "$identities_file" | "${r}age-keygen" -y
+    } >>"$recipients_file"
+
+    [ -s "$recipients_file" ] ||
+        die "couldn't generate recipients"
+
+    [ -f .recipients ] || cp "$recipients_file" .recipients
 
     git_enabled=false
-    [ -z "${PA_NOGIT+x}" ] && command -v git >/dev/null 2>&1 && git_enabled=true
+    [ -z "${PA_NOGIT+x}" ] && command -v git >/dev/null && git_enabled=true
 
     $git_enabled && [ ! -d .git ] && {
         git init -q
 
+        git config pull.rebase false
+
         # Put something in user config if it's not set globally,
         # because git doesn't allow to commit without it.
-        git config user.name >/dev/null || git config user.name pa
-        git config user.email >/dev/null || git config user.email ""
+        git config user.email >/dev/null ||
+            git config user.email "${EMAIL:-$(id -un)@$(uname -n)}"
 
         # Configure diff driver for age encrypted files that treats them as
         # binary and decrypts them when a human-readable diff is requested.
         git config diff.age.binary true
         git config diff.age.textconv "$age --decrypt -i '$identities_file'"
 
-        # Assign this diff driver to all passwords.
-        printf '%s\n' '*.age diff=age' >.gitattributes
+        # Always prefer our version of
+        # files after merge conflicts.
+        git config merge.ours.driver true
 
-        git_add_and_commit . "initial commit"
+        printf '%s\n' "*.age diff=age merge=ours
+.gitattributes merge=union
+.recipients merge=union" >.gitattributes
+
+        git_add_and_commit . "initial commit" ||
+            die "couldn't create initial commit"
     }
 
     command=$1
     shift
 
     glob "$command" 'g*' && {
-        git "$@"
+        git "$@" && change_recipients
         exit $?
     }
 
@@ -278,30 +406,7 @@ main() {
     glob "$command" 'l*' && [ "$name" ] && [ ! -d "$name" ] &&
         die "category '$name' doesn't exist"
 
-    if command -v age-plugin-yubikey >/dev/null 2>&1; then
-        [ ! -f "$identities_file" ] && [ ! -f "$recipients_file" ] && {
-            yn "generate yubikey identity?" && {
-                age-plugin-yubikey \
-                    --generate \
-                    --name "pa identity" \
-                    --pin-policy never \
-                    --touch-policy always >"$identities_file" ||
-                    die 'failed to generate YubiKey identity file'
-
-                age-plugin-yubikey -l >"$recipients_file" ||
-                    die 'failed to generate YubiKey recipients file'
-            }
-        }
-    fi
-
-    [ -f "$identities_file" ] ||
-        $age_keygen -o "$identities_file" 2>/dev/null
-
-    [ -f "$recipients_file" ] ||
-        $age_keygen -y -o "$recipients_file" "$identities_file" 2>/dev/null
-
-    # Ensure that we leave the terminal in a usable state on Ctrl+C.
-    [ -t 0 ] && trap 'stty echo icanon; trap - INT; kill -s INT 0' INT
+    name='' change_recipients
 
     case $command in
     a*) pw_add ;;
@@ -316,6 +421,14 @@ main() {
 # Ensure that debug mode is never enabled to
 # prevent the password from leaking.
 set +x
+
+# Ensure that globbing is disabled
+# to avoid insecurities with word-splitting.
+set -f
+
+# Ensure that pipelines return status of the
+# last failed command.
+set -o pipefail
 
 # Restrict permissions of any new files to
 # only the current user.
