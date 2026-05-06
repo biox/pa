@@ -61,16 +61,18 @@ pw_edit() {
     (: >"$tmpfile") 2>/dev/null ||
         die "couldn't create a shared memory filename"
 
-    trap 'rm -f "$tmpfile"' EXIT
+    trap 'rm -f "$tmpfile" "$tmpfile.orig"' EXIT
 
     [ -f "$name.age" ] && new=false &&
         { $age --decrypt -i "$identities_file" -o "$tmpfile" "./$name.age" ||
             die "couldn't decrypt $name.age"; }
 
+    cp "$tmpfile" "$tmpfile.orig"
+
     ${EDITOR:-vi} "$tmpfile" ||
         die "EDITOR exited non-zero"
 
-    [ -s "$tmpfile" ] || return
+    cmp -s "$tmpfile" "$tmpfile.orig" || [ ! -s "$tmpfile" ] && return
 
     mkdir -p "$(dirname -- "$name")" ||
         die "couldn't create category '$(dirname -- "$name")'"
