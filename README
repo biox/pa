@@ -35,7 +35,7 @@
     env vars:
       data directory:   export PA_DIR=~/.local/share/pa/passwords
       password length:  export PA_LENGTH=50
-      password pattern: export PA_PATTERN=A-Za-z0-9-_
+      password pattern: export PA_PATTERN=A-Za-z0-9_-
       disable tracking: export PA_NOGIT=
 
 

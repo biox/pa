@@ -4,7 +4,7 @@
 
 pw_add() {
     if yn "generate a password?"; then
-        pass=$(rand_chars "${PA_LENGTH:-50}" "${PA_PATTERN:-A-Za-z0-9-_}") ||
+        pass=$(rand_chars "${PA_LENGTH:-50}" "${PA_PATTERN:-A-Za-z0-9_-}") ||
             die "couldn't generate a password"
     else
         # 'sread()' is a simple wrapper function around 'read'
@@ -207,7 +207,7 @@ usage() {
   env vars:
     data directory:   export PA_DIR=~/.local/share/pa
     password length:  export PA_LENGTH=50
-    password pattern: export PA_PATTERN=A-Za-z0-9-_
+    password pattern: export PA_PATTERN=A-Za-z0-9_-
     disable tracking: export PA_NOGIT=
 "
     exit 0
