@@ -134,7 +134,7 @@ rand_chars() {
     #
     # $1 = number of chars to receive
     # $2 = filter for the chars
-    LC_ALL=C tr -dc "$2" </dev/urandom | dd ibs=1 obs=1 count="$1" 2>/dev/null
+    LC_ALL=C tr -dc "$2" </dev/urandom | dd bs=1 count="$1" 2>/dev/null
 }
 
 yn() {
@@ -146,7 +146,7 @@ yn() {
 
     # Read a single byte from stdin using 'dd'. POSIX 'read' has
     # no support for single/'N' byte based input from the user.
-    answer=$(dd ibs=1 count=1 2>/dev/null)
+    answer=$(dd bs=1 count=1 2>/dev/null)
 
     # Disable raw input, leaving the terminal how we *should*
     # have found it.
