@@ -44,8 +44,18 @@
     generate a password? [y/N]: y
     saved 'test' to the store.
 
+    $ pa a category/password
+    generate a password? [y/N]:
+    enter a password:
+    enter a password (again):
+    saved 'category/password' to the store.
+
     $ pa list
+    category/password
     test
+
+    $ pa l category
+    category/password
 
     $ pa show test
     vJwKuEBtxBVvdR-xppTdfofIei0oLlkoSK4OCSP2bMEBsP6ahM
@@ -62,6 +72,7 @@
     bbe85dc (HEAD -> main) delete 'example'
     c7f76d7 move 'test' to 'example'
     b597c04 edit 'test'
+    4ba2c80 add 'category/password'
     cba20cc add 'test'
     ef76f7e initial commit
 
