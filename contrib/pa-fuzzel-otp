@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# prompt for otp code via fuzzel
+# then type the selected password via wtype
+# put otp secrets in 'otp/' category
+
+for dependency in fuzzel oathtool wtype; do
+  command -v $dependency >/dev/null \
+    || { echo "$dependency not found"; exit 1; }
+done
+
+pa show $(pa list otp | fuzzel --dmenu "$@") \
+  | head -l 1 | oathtool --base32 --totp - | tr -d '\n' | wtype -
